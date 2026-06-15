@@ -53,9 +53,11 @@ a {
 }
 a:active { opacity: 0.6; }
 
-/* Hero header (V for Wikipedia signature) — full-bleed image with big italic title bottom-aligned */
+/* Hero header (V for Wikipedia signature) — full-bleed image with big italic title bottom-aligned.
+   Negative top margin escapes body's 16px padding-top so the hero is flush with the WebView's
+   top edge — matches ArticleLoadingPreview, no jump on cross-fade. */
 .folio-header {
-    margin: 0 -20px 28px -20px;
+    margin: -16px -20px 28px -20px;
     aspect-ratio: 4 / 3;
     background-size: cover;
     /* Bias the crop toward the upper third so faces stay in frame. Center-center
