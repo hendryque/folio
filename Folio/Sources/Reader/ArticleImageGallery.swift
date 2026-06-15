@@ -1,5 +1,8 @@
 import SwiftUI
 
+/// Two-column Pinterest masonry. Each thumbnail renders at its natural aspect via
+/// `scaledToFit`, so portrait + landscape photos both look right. SVG icons are
+/// filtered upstream (see `MediaListResponse.galleryImages`).
 struct ArticleImageGallery: View {
     let items: [MediaItem]
     let theme: Theme
@@ -7,11 +10,12 @@ struct ArticleImageGallery: View {
     @State private var lightbox: IdentifiedURL?
     @Environment(\.dismiss) private var dismiss
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 6),
-        GridItem(.flexible(), spacing: 6),
-        GridItem(.flexible(), spacing: 6)
-    ]
+    private var leftItems: [MediaItem] {
+        stride(from: 0, to: items.count, by: 2).map { items[$0] }
+    }
+    private var rightItems: [MediaItem] {
+        stride(from: 1, to: items.count, by: 2).map { items[$0] }
+    }
 
     var body: some View {
         NavigationStack {
@@ -24,28 +28,12 @@ struct ArticleImageGallery: View {
                     )
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: columns, spacing: 6) {
-                            ForEach(items) { item in
-                                Button {
-                                    lightbox = IdentifiedURL(url: item.originalURL)
-                                } label: {
-                                    AsyncImage(url: item.thumbnailURL) { phase in
-                                        switch phase {
-                                        case .success(let image):
-                                            image.resizable().scaledToFill()
-                                        case .failure, .empty:
-                                            Color(.tertiarySystemFill)
-                                        @unknown default:
-                                            Color(.tertiarySystemFill)
-                                        }
-                                    }
-                                    .aspectRatio(1, contentMode: .fill)
-                                    .frame(maxWidth: .infinity)
-                                    .clipped()
-                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel(item.caption ?? item.id)
+                        HStack(alignment: .top, spacing: 8) {
+                            LazyVStack(spacing: 8) {
+                                ForEach(leftItems) { thumbnail($0) }
+                            }
+                            LazyVStack(spacing: 8) {
+                                ForEach(rightItems) { thumbnail($0) }
                             }
                         }
                         .padding(8)
@@ -66,6 +54,28 @@ struct ArticleImageGallery: View {
         .fullScreenCover(item: $lightbox) { wrapped in
             ImageLightbox(url: wrapped.url)
         }
+    }
+
+    @ViewBuilder
+    private func thumbnail(_ item: MediaItem) -> some View {
+        Button {
+            lightbox = IdentifiedURL(url: item.originalURL)
+        } label: {
+            AsyncImage(url: item.thumbnailURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFit()
+                case .failure, .empty:
+                    Color(.tertiarySystemFill).aspectRatio(4 / 3, contentMode: .fit)
+                @unknown default:
+                    Color(.tertiarySystemFill).aspectRatio(4 / 3, contentMode: .fit)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(item.caption ?? item.id)
     }
 
     private var themeBackground: Color {

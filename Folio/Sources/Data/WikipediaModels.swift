@@ -139,7 +139,8 @@ struct MediaListResponse: Decodable, Sendable {
     }
 
     /// Just the images Wikipedia thinks are worth showing in a gallery. Skips audio, video,
-    /// SVG icons that Wikipedia marks `showInGallery=false`, and anything without a srcset.
+    /// SVG icons / diagrams (logos, flags, trophy outlines — they look broken in a thumbnail
+    /// grid), Wikipedia's own `showInGallery=false` items, and anything without a srcset.
     var galleryImages: [MediaItem] {
         guard let items else { return [] }
         return items.compactMap { item -> MediaItem? in
@@ -150,6 +151,7 @@ struct MediaListResponse: Decodable, Sendable {
                 let small = absoluteURL(srcs.first?.src),
                 let large = absoluteURL(srcs.last?.src) ?? absoluteURL(srcs.first?.src)
             else { return nil }
+            if isLikelySVG(small) || isLikelySVG(large) { return nil }
             let title = item.title ?? small.absoluteString
             return MediaItem(
                 id: title,
@@ -164,6 +166,10 @@ struct MediaListResponse: Decodable, Sendable {
         guard var src else { return nil }
         if src.hasPrefix("//") { src = "https:" + src }
         return URL(string: src)
+    }
+
+    private func isLikelySVG(_ url: URL) -> Bool {
+        url.path.lowercased().contains(".svg")
     }
 }
 
