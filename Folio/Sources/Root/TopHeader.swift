@@ -57,12 +57,15 @@ struct TopHeader: View {
 
 private struct FolioLogo: View {
     var body: some View {
-        Text("F")
-            .font(.system(size: 24, weight: .bold, design: .serif))
-            .italic()
-            .foregroundStyle(Color.accentColor)
-            .frame(width: 30, height: 30)
-            .accessibilityLabel("Folio")
+        VStack(alignment: .center, spacing: 2) {
+            Text("F")
+                .font(.custom("EBGaramond-BoldItalic", size: 22, relativeTo: .title3))
+                .foregroundStyle(Color.accentColor)
+            Rectangle()
+                .fill(Color.accentColor)
+                .frame(width: 14, height: 1.5)
+        }
+        .accessibilityLabel("Folio")
     }
 }
 
