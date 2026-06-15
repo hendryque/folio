@@ -7,7 +7,11 @@ struct ContentView: View {
 
     @State private var searchText = ""
     @State private var selectedTab: Tab = .today
-    @State private var navPath = NavigationPath()
+    @State private var todayPath = NavigationPath()
+    @State private var historyPath = NavigationPath()
+    @State private var bookmarksPath = NavigationPath()
+    @State private var nearbyPath = NavigationPath()
+    @State private var searchPath = NavigationPath()
     @State private var showSettings = false
     @FocusState private var searchFocused: Bool
 
@@ -45,33 +49,48 @@ struct ContentView: View {
                 onSettingsTap: { showSettings = true }
             )
 
-            NavigationStack(path: $navPath) {
-                Group {
-                    if isSearching {
-                        SearchResultsList(query: searchText, language: language)
-                    } else {
-                        tabContent
-                    }
-                }
-                .toolbar(.hidden, for: .navigationBar)
-                .articleDestination(language: language)
-            }
+            navigationStack
         }
         .preferredColorScheme(currentTheme.colorScheme)
         .task { ensureSettingsRow() }
         .sheet(isPresented: $showSettings) { SettingsView() }
-        .onChange(of: selectedTab) { _, _ in
-            navPath = NavigationPath()
-        }
     }
 
     @ViewBuilder
-    private var tabContent: some View {
-        switch selectedTab {
-        case .today: TodayView()
-        case .history: HistoryView()
-        case .bookmarks: BookmarksView()
-        case .nearby: NearbyView()
+    private var navigationStack: some View {
+        if isSearching {
+            NavigationStack(path: $searchPath) {
+                SearchResultsList(query: searchText, language: language)
+                    .toolbar(.hidden, for: .navigationBar)
+                    .articleDestination(language: language)
+            }
+        } else {
+            switch selectedTab {
+            case .today:
+                NavigationStack(path: $todayPath) {
+                    TodayView()
+                        .toolbar(.hidden, for: .navigationBar)
+                        .articleDestination(language: language)
+                }
+            case .history:
+                NavigationStack(path: $historyPath) {
+                    HistoryView()
+                        .toolbar(.hidden, for: .navigationBar)
+                        .articleDestination(language: language)
+                }
+            case .bookmarks:
+                NavigationStack(path: $bookmarksPath) {
+                    BookmarksView()
+                        .toolbar(.hidden, for: .navigationBar)
+                        .articleDestination(language: language)
+                }
+            case .nearby:
+                NavigationStack(path: $nearbyPath) {
+                    NearbyView()
+                        .toolbar(.hidden, for: .navigationBar)
+                        .articleDestination(language: language)
+                }
+            }
         }
     }
 
@@ -96,10 +115,19 @@ struct ContentView: View {
             do {
                 let article = try await WikipediaClient.shared.random(language: language)
                 searchText = ""
-                navPath.append(ArticleDestination(title: article.title, language: language))
+                appendToActivePath(ArticleDestination(title: article.title, language: language))
             } catch {
                 // Best-effort: silently no-op if the network request fails.
             }
+        }
+    }
+
+    private func appendToActivePath(_ destination: ArticleDestination) {
+        switch selectedTab {
+        case .today: todayPath.append(destination)
+        case .history: historyPath.append(destination)
+        case .bookmarks: bookmarksPath.append(destination)
+        case .nearby: nearbyPath.append(destination)
         }
     }
 
