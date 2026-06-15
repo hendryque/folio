@@ -96,7 +96,7 @@ struct OnThisDayItem: Decodable, Sendable, Identifiable, Hashable {
 struct SearchResult: Sendable, Hashable, Identifiable {
     let title: String
     let summary: String
-    let url: URL?
+    let thumbnailURL: URL?
 
     var id: String { title }
 }
@@ -219,26 +219,35 @@ struct NearbyResponse: Decodable, Sendable {
     }
 }
 
-/// OpenSearch returns four parallel arrays rather than a JSON object.
-/// `[query, [titles], [descriptions], [urls]]`
-struct OpenSearchResponse: Decodable, Sendable {
-    let query: String
-    let titles: [String]
-    let descriptions: [String]
-    let urls: [URL]
+/// Decoded response from /w/api.php?action=query&generator=prefixsearch&prop=pageimages|description.
+struct PrefixSearchResponse: Decodable, Sendable {
+    let query: Query?
 
-    init(from decoder: Decoder) throws {
-        var container = try decoder.unkeyedContainer()
-        self.query = try container.decode(String.self)
-        self.titles = try container.decode([String].self)
-        self.descriptions = try container.decode([String].self)
-        self.urls = try container.decode([URL].self)
+    struct Query: Decodable, Sendable {
+        let pages: [Page]?
     }
 
+    struct Page: Decodable, Sendable {
+        let title: String
+        let index: Int?
+        let description: String?
+        let thumbnail: Thumbnail?
+
+        struct Thumbnail: Decodable, Sendable { let source: URL }
+    }
+
+    /// Returns results ordered by Wikipedia's relevance ranking (`index`),
+    /// not the arbitrary order they come back as JSON pages.
     var results: [SearchResult] {
-        let count = min(titles.count, descriptions.count, urls.count)
-        return (0..<count).map { i in
-            SearchResult(title: titles[i], summary: descriptions[i], url: urls[i])
-        }
+        guard let pages = query?.pages else { return [] }
+        return pages
+            .sorted { ($0.index ?? .max) < ($1.index ?? .max) }
+            .map { page in
+                SearchResult(
+                    title: page.title,
+                    summary: page.description ?? "",
+                    thumbnailURL: page.thumbnail?.source
+                )
+            }
     }
 }

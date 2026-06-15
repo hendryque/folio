@@ -47,8 +47,8 @@ actor WikipediaClient {
     func search(query: String, language: String, limit: Int = 12) async throws -> [SearchResult] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
-        let response: OpenSearchResponse = try await get(
-            .openSearch(query: trimmed, language: language, limit: limit)
+        let response: PrefixSearchResponse = try await get(
+            .prefixSearch(query: trimmed, language: language, limit: limit)
         )
         return response.results
     }

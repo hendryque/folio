@@ -5,7 +5,7 @@ enum WikipediaEndpoint {
     case summary(title: String, language: String)
     case mobileHTML(title: String, language: String)
     case random(language: String)
-    case openSearch(query: String, language: String, limit: Int)
+    case prefixSearch(query: String, language: String, limit: Int)
     case langlinks(title: String, language: String)
     case related(title: String, language: String)
     case nearby(language: String, latitude: Double, longitude: Double, radiusMeters: Int, limit: Int)
@@ -33,14 +33,21 @@ enum WikipediaEndpoint {
         case .random(let language):
             return URL(string: "https://\(language).wikipedia.org/api/rest_v1/page/random/summary")
 
-        case .openSearch(let query, let language, let limit):
+        case .prefixSearch(let query, let language, let limit):
+            // generator=prefixsearch + prop=pageimages|description gives us titles,
+            // short descriptions, and 120px thumbnails in one round trip.
             var components = URLComponents(string: "https://\(language).wikipedia.org/w/api.php")
             components?.queryItems = [
-                URLQueryItem(name: "action", value: "opensearch"),
-                URLQueryItem(name: "search", value: query),
-                URLQueryItem(name: "limit", value: String(limit)),
-                URLQueryItem(name: "namespace", value: "0"),
-                URLQueryItem(name: "format", value: "json")
+                URLQueryItem(name: "action", value: "query"),
+                URLQueryItem(name: "format", value: "json"),
+                URLQueryItem(name: "formatversion", value: "2"),
+                URLQueryItem(name: "generator", value: "prefixsearch"),
+                URLQueryItem(name: "gpssearch", value: query),
+                URLQueryItem(name: "gpslimit", value: String(limit)),
+                URLQueryItem(name: "gpsnamespace", value: "0"),
+                URLQueryItem(name: "prop", value: "pageimages|description"),
+                URLQueryItem(name: "piprop", value: "thumbnail"),
+                URLQueryItem(name: "pithumbsize", value: "120")
             ]
             return components?.url
 
