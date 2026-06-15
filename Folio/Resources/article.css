@@ -286,6 +286,32 @@ section[data-mw-section-id] {
 .infobox tr:last-child th,
 .infobox tr:last-child td { border-bottom: 0; }
 
+/* Wikipedia ships infobox photos with explicit width/height HTML attributes (e.g. width=350),
+   leaving slack in the card on phones. Stretch the primary image to fill the cell while
+   keeping its aspect ratio. Targets only the dedicated image cells, not inline icons / flags. */
+.infobox-image,
+.infobox .infobox-image {
+    padding: 6px 0 4px 0;
+}
+.infobox-image img,
+.infobox .infobox-image img {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+    border-radius: 6px;
+}
+.infobox-image .infobox-caption,
+.infobox .infobox-caption {
+    padding: 8px 0 0 0;
+    margin: 0;
+    text-align: left;
+    font-size: 0.88em;
+    color: var(--folio-secondary);
+    font-style: italic;
+}
+
 /* Thumbnails in body — let them breathe */
 .thumb {
     margin: 1.2em -20px !important;
