@@ -1,0 +1,11 @@
+[data-theme="dark"], [data-theme="dark"] body {
+    --folio-bg: #1a1a1c;
+    --folio-fg: #e8e8ea;
+    --folio-secondary: #9a9a9c;
+    --folio-link: #ff8556;
+    --folio-link-underline: rgba(255, 133, 86, 0.45);
+    --folio-divider: rgba(255, 255, 255, 0.1);
+    --folio-accent: #ff8556;
+    --folio-card-bg: #2a2a2c;
+    --folio-code-bg: rgba(255, 255, 255, 0.07);
+}

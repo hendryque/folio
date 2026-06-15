@@ -1,0 +1,306 @@
+:root {
+    --folio-font-scale: 1.0;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--folio-bg);
+    color: var(--folio-fg);
+    font-family: "EB Garamond", "New York", ui-serif, Georgia, "Times New Roman", serif;
+    font-size: calc(17px * var(--folio-font-scale, 1.0));
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+body {
+    padding: 16px 20px 96px 20px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: "EB Garamond", "New York", ui-serif, Georgia, serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.22;
+    margin: 1.4em 0 0.45em 0;
+    color: var(--folio-fg);
+}
+
+h1 { font-size: 1.85em; margin-top: 0; }
+h2 {
+    font-size: 1.42em;
+    border-bottom: 1px solid var(--folio-divider);
+    padding-bottom: 0.22em;
+}
+h3 { font-size: 1.22em; }
+h4 { font-size: 1.08em; }
+
+p { margin: 0 0 0.85em 0; }
+
+/* V for Wikipedia's reader has no drop cap — the visual hero is the title overlaid on the
+   image (see .folio-header below). Body just begins with Wikipedia's bolded subject. */
+
+a {
+    color: var(--folio-link);
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: none;
+}
+a:active { opacity: 0.6; }
+
+/* Hero header (V for Wikipedia signature) — full-bleed image with big italic title bottom-aligned */
+.folio-header {
+    margin: 0 -20px 28px -20px;
+    aspect-ratio: 4 / 3;
+    background-size: cover;
+    /* Bias the crop toward the upper third so faces stay in frame. Center-center
+       loses heads on portraits; this loses almost nothing on landscapes. */
+    background-position: 50% 28%;
+    background-color: var(--folio-card-bg);
+    display: flex;
+    align-items: flex-end;
+    position: relative;
+    overflow: hidden;
+}
+.folio-header::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.4) 35%, rgba(0,0,0,0) 65%);
+    pointer-events: none;
+}
+.folio-title {
+    position: relative;
+    z-index: 1;
+    margin: 0 20px 20px 20px;
+    font-family: "EB Garamond", "New York", ui-serif, Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 2.6em;
+    line-height: 1.05;
+    color: #ffffff;
+    border-bottom: none;
+    padding-bottom: 0;
+    text-shadow: 0 1px 12px rgba(0,0,0,0.45);
+}
+
+/* Article with no hero image — plain large italic title above the body */
+.folio-header-textonly {
+    aspect-ratio: auto;
+    background: none;
+    margin: 0 0 20px 0;
+    display: block;
+}
+.folio-header-textonly::after { display: none; }
+.folio-header-textonly .folio-title {
+    color: var(--folio-fg);
+    margin: 0;
+    text-shadow: none;
+    font-size: 2.4em;
+}
+
+figure { margin: 1.2em -20px; }
+figure img, figure video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+figcaption {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 0.83em;
+    line-height: 1.45;
+    color: var(--folio-secondary);
+    padding: 8px 20px 0 20px;
+    font-style: italic;
+}
+
+img { max-width: 100%; height: auto; }
+
+table {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 0.88em;
+    border-collapse: collapse;
+    margin: 1em 0;
+    max-width: 100%;
+    display: block;
+    overflow-x: auto;
+}
+th, td {
+    border: 1px solid var(--folio-divider);
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+}
+th { font-weight: 600; background: var(--folio-card-bg); }
+
+ul, ol { padding-left: 1.5em; margin: 0.6em 0 0.85em 0; }
+li { margin-bottom: 0.32em; }
+
+blockquote {
+    border-left: 3px solid var(--folio-accent);
+    padding: 0.2em 0 0.2em 16px;
+    margin: 1.1em 0;
+    color: var(--folio-secondary);
+    font-style: italic;
+}
+
+pre, code, kbd, samp {
+    font-family: "SF Mono", ui-monospace, Menlo, Monaco, monospace;
+    font-size: 0.86em;
+}
+pre {
+    background: var(--folio-code-bg);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.45;
+}
+code { background: var(--folio-code-bg); padding: 1px 5px; border-radius: 3px; }
+pre code { background: transparent; padding: 0; border-radius: 0; }
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--folio-divider);
+    margin: 2em 0;
+}
+
+sup, sub { font-size: 0.7em; line-height: 0; }
+sup a { border-bottom: none; }
+
+/* Folio-injected footnote aside (populated by footnotes.js in phase 6) */
+.folio-footnote {
+    display: block;
+    background: var(--folio-card-bg);
+    border-left: 3px solid var(--folio-accent);
+    padding: 8px 12px;
+    margin: 0.6em 0 0.9em 0;
+    font-size: 0.92em;
+    color: var(--folio-secondary);
+    border-radius: 4px;
+}
+
+/* Wikipedia mobile-html chrome we don't want */
+.mw-editsection,
+.noprint,
+.navbox,
+.vertical-navbox,
+.ambox,
+.metadata,
+.mw-references-wrap,
+.references,
+.reflist,
+.mw-cite-backlink,
+.mw-cite-default,
+.hatnote,
+.dablink,
+.unsolved,
+.sister-projects,
+.toc,
+.mw-empty-elt,
+.shortdescription,
+.printfooter,
+footer,
+nav,
+.pcs-edit-section-link-container,
+#pcs-edit-section-title-description,
+[id="pcs-edit-section-title-description"],
+[data-description-source],
+.pcs-ref-item,
+section:has(> .pcs-ref-item),
+section:has(.pcs-ref-item),
+.pcs-collapse-table-icon,
+.pcs-collapse-table-aria,
+.pcs-collapse-table-collapse-text,
+.pcs-collapse-table-collapsed-bottom {
+    display: none !important;
+}
+
+/* Wikipedia mobile-html may include its own <header> with chrome — hide unless it's ours */
+header:not(.folio-header) {
+    display: none !important;
+}
+
+/* Force any Wikipedia collapse-table content to stay expanded — we don't ship the toggle JS */
+.pcs-collapse-table-content,
+.pcs-collapse-table-expanded {
+    display: block !important;
+}
+.pcs-collapse-table tbody > tr {
+    display: table-row !important;
+}
+
+/* Wikipedia mobile-html ships non-lead sections as `style="display: none;"`, expecting their
+   client-side JS to expand them on tap. We don't run that JS — force everything open. */
+section[data-mw-section-id] {
+    display: block !important;
+}
+
+/* Math (MathML + SVG fallback) */
+.mwe-math-element { font-size: 1em; color: var(--folio-fg); }
+.mwe-math-element-block,
+.mwe-math-mathml-display {
+    display: block;
+    overflow-x: auto;
+    margin: 1em 0;
+    text-align: center;
+}
+.mwe-math-element math { color: var(--folio-fg); }
+.mwe-math-mathml-a11y { display: none; }
+
+/* Dark + sepia: invert SVG math fallback so equations stay readable */
+[data-theme="dark"] .mw-invert,
+[data-theme="sepia"] .mw-invert {
+    filter: invert(1) hue-rotate(180deg);
+}
+
+/* Infoboxes and sidebars — render as full-width cards instead of float */
+.infobox, .sidebar, .vertical-navbox {
+    display: block;
+    float: none;
+    width: 100% !important;
+    margin: 1em 0;
+    padding: 12px;
+    background: var(--folio-card-bg);
+    border: 0;
+    border-radius: 10px;
+    font-size: 0.9em;
+}
+.infobox caption {
+    font-weight: 700;
+    font-family: "EB Garamond", "New York", ui-serif, Georgia, serif;
+    font-size: 1.1em;
+    padding: 0 0 8px 0;
+    text-align: left;
+}
+.infobox th, .infobox td {
+    border: 0;
+    border-bottom: 1px solid var(--folio-divider);
+    padding: 6px 0;
+    background: transparent;
+}
+.infobox tr:last-child th,
+.infobox tr:last-child td { border-bottom: 0; }
+
+/* Thumbnails in body — let them breathe */
+.thumb {
+    margin: 1.2em -20px !important;
+    float: none !important;
+    width: auto !important;
+}
+.thumb img { width: 100% !important; height: auto !important; max-width: none !important; }
+.thumbcaption {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 0.83em;
+    line-height: 1.45;
+    color: var(--folio-secondary);
+    padding: 8px 20px 0 20px;
+    font-style: italic;
+}
+
+/* Math — keep it readable */
+.mwe-math-element { font-size: 1em; }

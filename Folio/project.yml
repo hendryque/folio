@@ -1,0 +1,71 @@
+name: Folio
+options:
+  bundleIdPrefix: me.scott
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+  groupSortPosition: top
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: "8Q37XBPJ6W"
+    CODE_SIGN_STYLE: Automatic
+    GENERATE_INFOPLIST_FILE: NO
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+
+targets:
+  Folio:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: Sources
+        type: group
+      - path: Resources
+        type: group
+    info:
+      path: GeneratedInfo.plist
+      properties:
+        CFBundleDisplayName: Folio
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundlePackageType: $(PRODUCT_BUNDLE_PACKAGE_TYPE)
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        CFBundleName: $(PRODUCT_NAME)
+        LSApplicationCategoryType: public.app-category.reference
+        LSRequiresIPhoneOS: YES
+        NSLocationWhenInUseUsageDescription: "Folio queries Wikipedia's geosearch endpoint to find articles near you. Your location is not sent or saved anywhere else."
+        UIAppFonts:
+          - EBGaramond-Regular.otf
+          - EBGaramond-Italic.otf
+          - EBGaramond-Bold.otf
+          - EBGaramond-BoldItalic.otf
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: NO
+        UIApplicationSupportsIndirectInputEvents: YES
+        UILaunchScreen: {}
+        UIRequiresFullScreen: NO
+        UIStatusBarStyle: UIStatusBarStyleDefault
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.scott.folio
+        PRODUCT_NAME: Folio
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
