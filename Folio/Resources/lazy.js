@@ -1,5 +1,16 @@
 (function() {
+    function cleanInfoboxStyles() {
+        // Wikipedia hard-codes team colors and templated layout via inline !important
+        // styles (e.g. .infobox-header with Mavs navy + orange). Strip ALL inline styles
+        // inside any .infobox so our CSS can take over. Layout-affecting styles (width,
+        // text-align) are rare inside infobox cells, and our CSS supplies sensible defaults.
+        document.querySelectorAll('.infobox [style]').forEach(function(el) {
+            el.removeAttribute('style');
+        });
+    }
+
     function unwrap() {
+        cleanInfoboxStyles();
         var placeholders = document.querySelectorAll('.pcs-lazy-load-placeholder');
         placeholders.forEach(function(ph) {
             // Only unwrap <span> placeholders that have a data-src
