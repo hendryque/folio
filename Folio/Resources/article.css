@@ -282,7 +282,12 @@ section[data-mw-section-id] {
     border-bottom: 1px solid var(--folio-divider);
     padding: 6px 0;
     background: transparent;
+    vertical-align: top;
+    text-align: left;
 }
+/* Gap between the label column (TH) and the value column (TD) — otherwise
+   they touch (e.g. de.wiki "Geburtstag23. Juli 1987"). */
+.infobox th { padding-right: 14px; white-space: nowrap; }
 .infobox tr:last-child th,
 .infobox tr:last-child td { border-bottom: 0; }
 
@@ -336,7 +341,12 @@ section[data-mw-section-id] {
     padding: 6px 0 4px 0;
 }
 .infobox-image img,
-.infobox .infobox-image img {
+.infobox .infobox-image img,
+/* German Wikipedia (and a few others) drop the hero image into a plain
+   `<td colspan="2">` instead of giving it a class. Catch any image inside
+   a spanning cell and treat it as the hero. */
+.infobox td[colspan] img,
+.infobox th[colspan] img {
     width: 100%;
     height: auto;
     max-width: 100%;
