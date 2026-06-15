@@ -62,7 +62,12 @@ struct ArticleReaderView: View {
                 dismiss()
             }
         }
-        .toolbar(.hidden, for: .navigationBar)
+        // Keep the nav bar present-but-invisible so UIKit's interactive pop
+        // (swipe-from-leading-edge) still works. `.toolbar(.hidden)` removes the bar
+        // entirely and disables the gesture.
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
         .task(id: identityKey) { await loadAll() }
         .sheet(isPresented: $showTOC) {
             TableOfContentsDrawer(
