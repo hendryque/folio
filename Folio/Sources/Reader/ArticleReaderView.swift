@@ -26,9 +26,7 @@ struct ArticleReaderView: View {
     @State private var heroFocalPoint: CGPoint?
     @State private var visionComplete: Bool = false
     @State private var initialScrollY: Double = 0
-    @State private var currentScrollY: Double = 0
     @State private var toolbarVisible: Bool = true
-    @State private var scrollSaveTask: Task<Void, Never>?
     @State private var toolbarRevealTask: Task<Void, Never>?
     @State private var activeSectionAnchor: String?
 
@@ -211,7 +209,7 @@ struct ArticleReaderView: View {
         heroFocalPoint = nil
         visionComplete = false
         galleryItems = []
-        initialScrollY = await loadSavedScrollPosition()
+        initialScrollY = 0
 
         // Summary first — needed for the focal-point image URL.
         await loadSummary()
@@ -256,29 +254,11 @@ struct ArticleReaderView: View {
         galleryItems = (try? await WikipediaClient.shared.mediaList(title: title, language: language)) ?? []
     }
 
-    private func loadSavedScrollPosition() async -> Double {
-        let descriptor = FetchDescriptor<HistoryEntry>(
-            predicate: #Predicate { entry in
-                entry.title == title && entry.language == language
-            },
-            sortBy: [SortDescriptor(\.readAt, order: .reverse)]
-        )
-        guard let existing = try? modelContext.fetch(descriptor).first else { return 0 }
-        return existing.scrollY
-    }
-
     private func handleScroll(_ y: Double) {
-        currentScrollY = y
         updateToolbarVisibility(forNewY: y)
-        scrollSaveTask?.cancel()
-        scrollSaveTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(700))
-            guard !Task.isCancelled else { return }
-            persistScrollPosition()
-        }
     }
 
-    /// Idle-reveal pattern: any scroll fades the toolbar out; after 1.2s of no scroll
+    /// Idle-reveal pattern: any scroll fades the toolbar out; after 0.8s of no scroll
     /// activity, fade it back in. Near the top of the article (under the hero) the
     /// toolbar stays visible regardless — users have just landed or are about to leave.
     private func updateToolbarVisibility(forNewY y: Double) {
@@ -296,26 +276,11 @@ struct ArticleReaderView: View {
 
         toolbarRevealTask?.cancel()
         toolbarRevealTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(1200))
+            try? await Task.sleep(for: .milliseconds(800))
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.3)) { toolbarVisible = true }
         }
     }
-
-    private func persistScrollPosition() {
-        let descriptor = FetchDescriptor<HistoryEntry>(
-            predicate: #Predicate { entry in
-                entry.title == title && entry.language == language
-            },
-            sortBy: [SortDescriptor(\.readAt, order: .reverse)]
-        )
-        guard let entry = try? modelContext.fetch(descriptor).first else { return }
-        if abs(entry.scrollY - currentScrollY) > 24 {
-            entry.scrollY = currentScrollY
-            try? modelContext.save()
-        }
-    }
-
 
     private func loadLanglinks() async {
         let links = (try? await WikipediaClient.shared.langlinks(title: title, language: language)) ?? []
