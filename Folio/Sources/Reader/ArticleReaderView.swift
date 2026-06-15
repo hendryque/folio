@@ -86,6 +86,15 @@ struct ArticleReaderView: View {
         .navigationDestination(item: $pushedArticle) { dest in
             ArticleReaderView(title: dest.title, language: dest.language ?? language)
         }
+        // Header EN/DE toggle changes AppSettings.defaultLanguage. When the user is
+        // in an article and that global language differs from the current article's,
+        // jump to the alternate-language version (if a langlink exists for it).
+        .onChange(of: settings?.defaultLanguage) { _, newLang in
+            guard let newLang, newLang != language else { return }
+            if let alt = alternateLink, alt.lang == newLang {
+                pushedArticle = ArticleDestination(title: alt.title, language: alt.lang)
+            }
+        }
     }
 
     @ViewBuilder
