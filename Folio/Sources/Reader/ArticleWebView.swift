@@ -26,6 +26,7 @@ struct ArticleWebView: UIViewRepresentable {
     var onFontScale: (Double) -> Void = { _ in }
     var onInternalLink: (ArticleDestination) -> Void = { _ in }
     var onScroll: (Double) -> Void = { _ in }
+    var onActiveSection: (String?) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
@@ -35,7 +36,8 @@ struct ArticleWebView: UIViewRepresentable {
             onImageTap: onImageTap,
             onFontScale: onFontScale,
             onInternalLink: onInternalLink,
-            onScroll: onScroll
+            onScroll: onScroll,
+            onActiveSection: onActiveSection
         )
     }
 
@@ -55,6 +57,7 @@ struct ArticleWebView: UIViewRepresentable {
         controller.add(context.coordinator, name: "image")
         controller.add(context.coordinator, name: "fontScale")
         controller.add(context.coordinator, name: "scroll")
+        controller.add(context.coordinator, name: "activeSection")
         configuration.userContentController = controller
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
@@ -74,6 +77,7 @@ struct ArticleWebView: UIViewRepresentable {
         context.coordinator.onFontScale = onFontScale
         context.coordinator.onInternalLink = onInternalLink
         context.coordinator.onScroll = onScroll
+        context.coordinator.onActiveSection = onActiveSection
         context.coordinator.initialScrollY = initialScrollY
 
         // Stable hash deliberately excludes theme and fontScale so swapping themes
@@ -118,7 +122,7 @@ struct ArticleWebView: UIViewRepresentable {
     }
 
     private static let userScriptSources: [String] = {
-        ["lazy", "toc", "footnotes", "images", "pinch", "scroll"].compactMap { name in
+        ["lazy", "toc", "footnotes", "images", "pinch", "scroll", "section"].compactMap { name in
             guard let url = Bundle.main.url(forResource: name, withExtension: "js") else { return nil }
             return try? String(contentsOf: url, encoding: .utf8)
         }
@@ -133,6 +137,7 @@ struct ArticleWebView: UIViewRepresentable {
         var onFontScale: (Double) -> Void
         var onInternalLink: (ArticleDestination) -> Void
         var onScroll: (Double) -> Void
+        var onActiveSection: (String?) -> Void
 
         var lastHash: Int = 0
         weak var webView: WKWebView?
@@ -152,7 +157,8 @@ struct ArticleWebView: UIViewRepresentable {
             onImageTap: @escaping (URL) -> Void,
             onFontScale: @escaping (Double) -> Void,
             onInternalLink: @escaping (ArticleDestination) -> Void,
-            onScroll: @escaping (Double) -> Void
+            onScroll: @escaping (Double) -> Void,
+            onActiveSection: @escaping (String?) -> Void
         ) {
             self.currentTitle = currentTitle
             self.initialScrollY = initialScrollY
@@ -161,6 +167,7 @@ struct ArticleWebView: UIViewRepresentable {
             self.onFontScale = onFontScale
             self.onInternalLink = onInternalLink
             self.onScroll = onScroll
+            self.onActiveSection = onActiveSection
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -202,6 +209,11 @@ struct ArticleWebView: UIViewRepresentable {
                     let y = dict["y"] as? Double
                 else { return }
                 onScroll(y)
+
+            case "activeSection":
+                guard let dict = body as? [String: Any] else { return }
+                let raw = dict["id"] as? String ?? ""
+                onActiveSection(raw.isEmpty ? nil : raw)
 
             default:
                 break

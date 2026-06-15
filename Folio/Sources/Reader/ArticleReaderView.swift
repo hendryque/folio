@@ -27,6 +27,7 @@ struct ArticleReaderView: View {
     @State private var lastScrollY: Double = 0
     @State private var toolbarVisible: Bool = true
     @State private var scrollSaveTask: Task<Void, Never>?
+    @State private var activeSectionAnchor: String?
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -61,7 +62,13 @@ struct ArticleReaderView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task(id: identityKey) { await loadAll() }
         .sheet(isPresented: $showTOC) {
-            TableOfContentsDrawer(sections: sections) { anchor in
+            TableOfContentsDrawer(
+                articleTitle: displayTitle,
+                thumbnailURL: summary?.thumbnailURL,
+                sections: sections,
+                activeAnchor: activeSectionAnchor,
+                theme: theme
+            ) { anchor in
                 pendingScrollAnchor = anchor
             }
         }
@@ -91,7 +98,8 @@ struct ArticleReaderView: View {
                 onImageTap: { lightbox = IdentifiedURL(url: $0) },
                 onFontScale: persistFontScale,
                 onInternalLink: { pushedArticle = $0 },
-                onScroll: handleScroll
+                onScroll: handleScroll,
+                onActiveSection: { activeSectionAnchor = $0 }
             )
             .ignoresSafeArea()
             .transition(.opacity)
@@ -116,6 +124,7 @@ struct ArticleReaderView: View {
     }
 
     private var identityKey: String { "\(language)/\(title)" }
+    private var displayTitle: String { title.replacingOccurrences(of: "_", with: " ") }
 
     private var settings: AppSettings? { settingsList.first }
     private var theme: Theme { settings.flatMap { Theme(rawValue: $0.theme) } ?? .system }

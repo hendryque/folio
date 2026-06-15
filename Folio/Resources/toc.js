@@ -22,6 +22,10 @@
 
     window.folioScrollToAnchor = function(anchor) {
         if (!anchor) return;
+        if (anchor === '_top') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
         const el = document.getElementById(anchor);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
