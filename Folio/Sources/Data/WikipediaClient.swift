@@ -71,6 +71,11 @@ actor WikipediaClient {
         return wrapper.pages
     }
 
+    func mediaList(title: String, language: String) async throws -> [MediaItem] {
+        let response: MediaListResponse = try await get(.mediaList(title: title, language: language))
+        return response.galleryImages
+    }
+
     func nearby(
         latitude: Double,
         longitude: Double,

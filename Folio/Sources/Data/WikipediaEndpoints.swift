@@ -9,6 +9,7 @@ enum WikipediaEndpoint {
     case langlinks(title: String, language: String)
     case related(title: String, language: String)
     case nearby(language: String, latitude: Double, longitude: Double, radiusMeters: Int, limit: Int)
+    case mediaList(title: String, language: String)
 
     func url() -> URL? {
         switch self {
@@ -59,6 +60,10 @@ enum WikipediaEndpoint {
         case .related(let title, let language):
             guard let escaped = Self.encodePathTitle(title) else { return nil }
             return URL(string: "https://\(language).wikipedia.org/api/rest_v1/page/related/\(escaped)")
+
+        case .mediaList(let title, let language):
+            guard let escaped = Self.encodePathTitle(title) else { return nil }
+            return URL(string: "https://\(language).wikipedia.org/api/rest_v1/page/media-list/\(escaped)")
 
         case .nearby(let language, let lat, let lon, let radius, let limit):
             var components = URLComponents(string: "https://\(language).wikipedia.org/w/api.php")

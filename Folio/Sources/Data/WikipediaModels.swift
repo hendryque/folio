@@ -111,6 +111,62 @@ struct LangLink: Decodable, Sendable, Hashable {
     }
 }
 
+struct MediaItem: Sendable, Identifiable, Hashable {
+    let id: String          // Wikipedia file title (stable, unique)
+    let thumbnailURL: URL
+    let originalURL: URL
+    let caption: String?
+}
+
+struct MediaListResponse: Decodable, Sendable {
+    let items: [Item]?
+
+    struct Item: Decodable, Sendable {
+        let title: String?
+        let type: String?
+        let showInGallery: Bool?
+        let srcset: [SrcSet]?
+        let caption: Caption?
+
+        struct SrcSet: Decodable, Sendable {
+            let src: String
+            let scale: String?
+        }
+        struct Caption: Decodable, Sendable {
+            let text: String?
+            let html: String?
+        }
+    }
+
+    /// Just the images Wikipedia thinks are worth showing in a gallery. Skips audio, video,
+    /// SVG icons that Wikipedia marks `showInGallery=false`, and anything without a srcset.
+    var galleryImages: [MediaItem] {
+        guard let items else { return [] }
+        return items.compactMap { item -> MediaItem? in
+            guard item.type == "image" else { return nil }
+            if item.showInGallery == false { return nil }
+            guard let srcs = item.srcset, !srcs.isEmpty else { return nil }
+            guard
+                let small = absoluteURL(srcs.first?.src),
+                let large = absoluteURL(srcs.last?.src) ?? absoluteURL(srcs.first?.src)
+            else { return nil }
+            let title = item.title ?? small.absoluteString
+            return MediaItem(
+                id: title,
+                thumbnailURL: small,
+                originalURL: large,
+                caption: item.caption?.text?.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+        }
+    }
+
+    private func absoluteURL(_ src: String?) -> URL? {
+        guard var src else { return nil }
+        if src.hasPrefix("//") { src = "https:" + src }
+        return URL(string: src)
+    }
+}
+
 struct NearbyArticle: Sendable, Identifiable, Hashable {
     let id: Int
     let title: String

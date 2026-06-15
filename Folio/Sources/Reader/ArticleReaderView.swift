@@ -17,6 +17,8 @@ struct ArticleReaderView: View {
 
     @State private var sections: [ArticleSection] = []
     @State private var showTOC = false
+    @State private var showGallery = false
+    @State private var galleryItems: [MediaItem] = []
     @State private var lightbox: IdentifiedURL?
     @State private var pendingScrollAnchor: String?
     @State private var alternateLink: LangLink?
@@ -24,9 +26,9 @@ struct ArticleReaderView: View {
     @State private var heroFocalPoint: CGPoint?
     @State private var initialScrollY: Double = 0
     @State private var currentScrollY: Double = 0
-    @State private var lastScrollY: Double = 0
     @State private var toolbarVisible: Bool = true
     @State private var scrollSaveTask: Task<Void, Never>?
+    @State private var toolbarRevealTask: Task<Void, Never>?
     @State private var activeSectionAnchor: String?
 
     var body: some View {
@@ -41,10 +43,12 @@ struct ArticleReaderView: View {
                     themeIcon: themeIcon,
                     themeLabel: theme.displayName,
                     hasSections: !sections.isEmpty,
+                    hasGallery: !galleryItems.isEmpty,
                     alternateLink: alternateLink,
                     fallbackLanguage: language,
                     onToggleBookmark: toggleBookmark,
                     onCycleTheme: cycleTheme,
+                    onShowGallery: { showGallery = true },
                     onShowTOC: { showTOC = true }
                 )
                 .opacity(toolbarVisible ? 1 : 0)
@@ -71,6 +75,9 @@ struct ArticleReaderView: View {
             ) { anchor in
                 pendingScrollAnchor = anchor
             }
+        }
+        .sheet(isPresented: $showGallery) {
+            ArticleImageGallery(items: galleryItems, theme: theme)
         }
         .fullScreenCover(item: $lightbox) { wrapped in
             ImageLightbox(url: wrapped.url)
@@ -188,13 +195,19 @@ struct ArticleReaderView: View {
         loadError = nil
         alternateLink = nil
         heroFocalPoint = nil
+        galleryItems = []
         initialScrollY = await loadSavedScrollPosition()
         async let summaryTask: () = loadSummary()
         async let htmlTask: () = loadHTML()
         async let langlinksTask: () = loadLanglinks()
-        _ = await (summaryTask, htmlTask, langlinksTask)
+        async let galleryTask: () = loadGallery()
+        _ = await (summaryTask, htmlTask, langlinksTask, galleryTask)
         recordHistoryIfNeeded()
         await detectHeroFocalPoint()
+    }
+
+    private func loadGallery() async {
+        galleryItems = (try? await WikipediaClient.shared.mediaList(title: title, language: language)) ?? []
     }
 
     private func loadSavedScrollPosition() async -> Double {
@@ -211,7 +224,6 @@ struct ArticleReaderView: View {
     private func handleScroll(_ y: Double) {
         currentScrollY = y
         updateToolbarVisibility(forNewY: y)
-        lastScrollY = y
         scrollSaveTask?.cancel()
         scrollSaveTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(700))
@@ -220,20 +232,27 @@ struct ArticleReaderView: View {
         }
     }
 
+    /// Idle-reveal pattern: any scroll fades the toolbar out; after 1.2s of no scroll
+    /// activity, fade it back in. Near the top of the article (under the hero) the
+    /// toolbar stays visible regardless — users have just landed or are about to leave.
     private func updateToolbarVisibility(forNewY y: Double) {
-        let delta = y - lastScrollY
-        // Always show at the top so users see the chrome when they land or scroll back to the hero.
         if y < 80 {
+            toolbarRevealTask?.cancel()
             if !toolbarVisible {
                 withAnimation(.easeOut(duration: 0.2)) { toolbarVisible = true }
             }
             return
         }
-        // Require a meaningful scroll delta so micro-jitter doesn't flip the toolbar.
-        if delta > 10 && toolbarVisible {
-            withAnimation(.easeOut(duration: 0.25)) { toolbarVisible = false }
-        } else if delta < -10 && !toolbarVisible {
-            withAnimation(.easeOut(duration: 0.2)) { toolbarVisible = true }
+
+        if toolbarVisible {
+            withAnimation(.easeOut(duration: 0.2)) { toolbarVisible = false }
+        }
+
+        toolbarRevealTask?.cancel()
+        toolbarRevealTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1200))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.3)) { toolbarVisible = true }
         }
     }
 
@@ -374,10 +393,12 @@ private struct BottomReaderToolbar: View {
     let themeIcon: String
     let themeLabel: String
     let hasSections: Bool
+    let hasGallery: Bool
     let alternateLink: LangLink?
     let fallbackLanguage: String
     let onToggleBookmark: () -> Void
     let onCycleTheme: () -> Void
+    let onShowGallery: () -> Void
     let onShowTOC: () -> Void
 
     var body: some View {
@@ -411,6 +432,15 @@ private struct BottomReaderToolbar: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
+
+            Button(action: onShowGallery) {
+                Image(systemName: "square.grid.2x2")
+                    .accessibilityLabel("Images")
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .disabled(!hasGallery)
+            .opacity(hasGallery ? 1.0 : 0.4)
 
             Button(action: onShowTOC) {
                 Image(systemName: "list.bullet")
