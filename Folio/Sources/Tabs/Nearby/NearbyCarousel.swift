@@ -28,6 +28,12 @@ struct NearbyCarousel: View {
                     proxy.scrollTo(newID, anchor: .center)
                 }
             }
+            .onChange(of: articles.first?.id) { _, newFirstID in
+                guard let newFirstID else { return }
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    proxy.scrollTo(newFirstID, anchor: .leading)
+                }
+            }
         }
     }
 }
