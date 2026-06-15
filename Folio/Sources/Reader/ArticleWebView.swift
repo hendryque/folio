@@ -27,6 +27,7 @@ struct ArticleWebView: UIViewRepresentable {
     var onInternalLink: (ArticleDestination) -> Void = { _ in }
     var onScroll: (Double) -> Void = { _ in }
     var onActiveSection: (String?) -> Void = { _ in }
+    var onReady: () -> Void = {}
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
@@ -37,7 +38,8 @@ struct ArticleWebView: UIViewRepresentable {
             onFontScale: onFontScale,
             onInternalLink: onInternalLink,
             onScroll: onScroll,
-            onActiveSection: onActiveSection
+            onActiveSection: onActiveSection,
+            onReady: onReady
         )
     }
 
@@ -78,6 +80,7 @@ struct ArticleWebView: UIViewRepresentable {
         context.coordinator.onInternalLink = onInternalLink
         context.coordinator.onScroll = onScroll
         context.coordinator.onActiveSection = onActiveSection
+        context.coordinator.onReady = onReady
         context.coordinator.initialScrollY = initialScrollY
 
         // Stable hash deliberately excludes theme and fontScale so swapping themes
@@ -138,6 +141,7 @@ struct ArticleWebView: UIViewRepresentable {
         var onInternalLink: (ArticleDestination) -> Void
         var onScroll: (Double) -> Void
         var onActiveSection: (String?) -> Void
+        var onReady: () -> Void
 
         var lastHash: Int = 0
         weak var webView: WKWebView?
@@ -158,7 +162,8 @@ struct ArticleWebView: UIViewRepresentable {
             onFontScale: @escaping (Double) -> Void,
             onInternalLink: @escaping (ArticleDestination) -> Void,
             onScroll: @escaping (Double) -> Void,
-            onActiveSection: @escaping (String?) -> Void
+            onActiveSection: @escaping (String?) -> Void,
+            onReady: @escaping () -> Void
         ) {
             self.currentTitle = currentTitle
             self.initialScrollY = initialScrollY
@@ -168,6 +173,7 @@ struct ArticleWebView: UIViewRepresentable {
             self.onInternalLink = onInternalLink
             self.onScroll = onScroll
             self.onActiveSection = onActiveSection
+            self.onReady = onReady
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -221,6 +227,7 @@ struct ArticleWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            onReady()
             guard initialScrollY > 0 else { return }
             let y = initialScrollY
             initialScrollY = 0  // restore only once per load

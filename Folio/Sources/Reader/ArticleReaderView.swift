@@ -25,6 +25,7 @@ struct ArticleReaderView: View {
     @State private var pushedArticle: ArticleDestination?
     @State private var heroFocalPoint: CGPoint?
     @State private var visionComplete: Bool = false
+    @State private var webViewReady: Bool = false
     @State private var initialScrollY: Double = 0
     @State private var toolbarVisible: Bool = true
     @State private var toolbarRevealTask: Task<Void, Never>?
@@ -56,7 +57,7 @@ struct ArticleReaderView: View {
                 .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.22), value: html == nil)
+        .animation(.easeInOut(duration: 0.28), value: contentPhase)
         .overlay(alignment: .topLeading) {
             FloatingBackButton {
                 dismiss()
@@ -100,50 +101,67 @@ struct ArticleReaderView: View {
         }
     }
 
+    private enum ContentPhase: Int { case loading, preview, web }
+
+    private var contentPhase: ContentPhase {
+        if webViewReady { return .web }
+        if summary != nil { return .preview }
+        return .loading
+    }
+
     @ViewBuilder
     private var content: some View {
-        // Hold the WebView back until we also know the hero focal point.
-        // Cached articles resolve focal instantly from the CachedArticle row;
-        // first-visit articles wait for Vision (~300-700ms) so the WebView
-        // renders with the correct crop on its very first paint — no flash.
-        if let html, visionComplete {
-            ArticleWebView(
-                html: html,
-                baseURL: baseURL,
-                language: language,
-                currentTitle: title,
-                heroImageURL: summary?.originalImageURL ?? summary?.thumbnailURL,
-                heroFocalPoint: heroFocalPoint,
-                theme: theme,
-                fontScale: fontScale,
-                initialScrollY: initialScrollY,
-                pendingScrollAnchor: $pendingScrollAnchor,
-                onSections: { sections = $0 },
-                onImageTap: { lightbox = IdentifiedURL(url: $0) },
-                onFontScale: persistFontScale,
-                onInternalLink: { pushedArticle = $0 },
-                onScroll: handleScroll,
-                onActiveSection: { activeSectionAnchor = $0 }
-            )
-            .ignoresSafeArea()
-            .transition(.opacity)
-        } else if let loadError {
-            ContentUnavailableView(
-                "Couldn't load article",
-                systemImage: "exclamationmark.triangle",
-                description: Text(loadError)
-            )
-        } else if let summary {
-            ArticleLoadingPreview(
-                summary: summary,
-                theme: theme,
-                fontScale: fontScale,
-                heroFocalPoint: heroFocalPoint
-            )
-            .transition(.opacity)
-        } else {
-            ProgressView()
-                .controlSize(.large)
+        // Mount the WebView the moment HTML + focal are both available, but keep
+        // it invisible until WKWebView's didFinish fires (`webViewReady`). The
+        // ArticleLoadingPreview overlays on top until that happens, so the
+        // cross-fade goes preview → painted-article without a blank gap.
+        ZStack {
+            if let html, visionComplete {
+                ArticleWebView(
+                    html: html,
+                    baseURL: baseURL,
+                    language: language,
+                    currentTitle: title,
+                    heroImageURL: summary?.originalImageURL ?? summary?.thumbnailURL,
+                    heroFocalPoint: heroFocalPoint,
+                    theme: theme,
+                    fontScale: fontScale,
+                    initialScrollY: initialScrollY,
+                    pendingScrollAnchor: $pendingScrollAnchor,
+                    onSections: { sections = $0 },
+                    onImageTap: { lightbox = IdentifiedURL(url: $0) },
+                    onFontScale: persistFontScale,
+                    onInternalLink: { pushedArticle = $0 },
+                    onScroll: handleScroll,
+                    onActiveSection: { activeSectionAnchor = $0 },
+                    onReady: { webViewReady = true }
+                )
+                .ignoresSafeArea()
+                .opacity(webViewReady ? 1 : 0)
+            }
+
+            if !webViewReady {
+                if let loadError {
+                    ContentUnavailableView(
+                        "Couldn't load article",
+                        systemImage: "exclamationmark.triangle",
+                        description: Text(loadError)
+                    )
+                    .transition(.opacity)
+                } else if let summary {
+                    ArticleLoadingPreview(
+                        summary: summary,
+                        theme: theme,
+                        fontScale: fontScale,
+                        heroFocalPoint: heroFocalPoint
+                    )
+                    .transition(.opacity)
+                } else {
+                    ProgressView()
+                        .controlSize(.large)
+                        .transition(.opacity)
+                }
+            }
         }
     }
 
@@ -213,6 +231,7 @@ struct ArticleReaderView: View {
         alternateLink = nil
         heroFocalPoint = nil
         visionComplete = false
+        webViewReady = false
         galleryItems = []
         initialScrollY = 0
 

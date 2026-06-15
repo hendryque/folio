@@ -10,10 +10,23 @@ struct ArticleLoadingPreview: View {
     let fontScale: Double
     let heroFocalPoint: CGPoint?
 
+    private var heroRef: ImageRef? {
+        summary.originalImage ?? summary.thumbnail
+    }
+
+    /// Aspect ratio (w/h) of the hero source — read off Wikipedia's reported
+    /// dimensions so our preview crop matches the WebView's `background-size: cover`
+    /// at the same focal point. Falls back to the container aspect (no overflow)
+    /// when dimensions aren't reported.
+    private var heroImageAspect: CGFloat? {
+        guard let w = heroRef?.width, let h = heroRef?.height, h > 0 else { return nil }
+        return CGFloat(w) / CGFloat(h)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                if let url = summary.originalImageURL ?? summary.thumbnailURL {
+                if let url = heroRef?.source {
                     hero(url: url)
                 } else {
                     Text(displayTitle)
@@ -63,8 +76,9 @@ struct ArticleLoadingPreview: View {
 
     @ViewBuilder
     private func hero(url: URL) -> some View {
-        ZStack(alignment: .bottomLeading) {
-            GeometryReader { geo in
+        GeometryReader { geo in
+            let layout = heroLayout(containerWidth: geo.size.width)
+            ZStack(alignment: .bottomLeading) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
@@ -77,44 +91,72 @@ struct ArticleLoadingPreview: View {
                         Color(.tertiarySystemFill)
                     }
                 }
-                .frame(width: geo.size.width, height: geo.size.width * 3 / 4, alignment: focalAlignment)
+                .frame(width: layout.imageWidth, height: layout.imageHeight)
+                .offset(x: layout.offsetX, y: layout.offsetY)
+                .frame(width: layout.containerWidth, height: layout.containerHeight, alignment: .topLeading)
                 .clipped()
+
+                LinearGradient(
+                    colors: [.black.opacity(0.78), .black.opacity(0.40), .clear],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+                .frame(height: 220)
+                .allowsHitTesting(false)
+
+                Text(displayTitle)
+                    .font(.custom("EBGaramond-Italic", size: 34 * fontScale, relativeTo: .largeTitle))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.45), radius: 12, y: 1)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
             }
-            .aspectRatio(4 / 3, contentMode: .fit)
+        }
+        .aspectRatio(4 / 3, contentMode: .fit)
+    }
 
-            LinearGradient(
-                colors: [.black.opacity(0.78), .black.opacity(0.40), .clear],
-                startPoint: .bottom,
-                endPoint: .top
+    /// Computes a `background-size: cover; background-position: X% Y%` equivalent
+    /// for SwiftUI: the image is scaled to fully cover a 4:3 container, then
+    /// translated so the focal point lands at the same relative spot the CSS
+    /// would place it. Matches `.folio-header` in `article.css` so the WebView
+    /// can replace this view without a visible crop jump.
+    private func heroLayout(containerWidth: CGFloat) -> HeroLayout {
+        let cw = containerWidth
+        let ch = cw * 3 / 4
+        let containerAspect = cw / ch  // 4/3
+        let imageAspect = heroImageAspect ?? containerAspect
+        let fx = heroFocalPoint?.x ?? 0.5
+        let fy = heroFocalPoint?.y ?? 0.28  // matches CSS default background-position: 50% 28%
+
+        if imageAspect >= containerAspect {
+            // Wider than container → match heights, horizontal overflow.
+            let h = ch
+            let w = h * imageAspect
+            let excess = w - cw
+            return HeroLayout(
+                containerWidth: cw, containerHeight: ch,
+                imageWidth: w, imageHeight: h,
+                offsetX: -excess * fx, offsetY: 0
             )
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .frame(height: 220)
-            .allowsHitTesting(false)
-
-            Text(displayTitle)
-                .font(.custom("EBGaramond-Italic", size: 34 * fontScale, relativeTo: .largeTitle))
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.45), radius: 12, y: 1)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
+        } else {
+            // Taller than container → match widths, vertical overflow.
+            let w = cw
+            let h = w / imageAspect
+            let excess = h - ch
+            return HeroLayout(
+                containerWidth: cw, containerHeight: ch,
+                imageWidth: w, imageHeight: h,
+                offsetX: 0, offsetY: -excess * fy
+            )
         }
     }
+}
 
-    private var focalAlignment: Alignment {
-        guard let f = heroFocalPoint else { return .top }
-        let xq: Int = f.x < 0.34 ? -1 : (f.x > 0.66 ? 1 : 0)
-        let yq: Int = f.y < 0.34 ? -1 : (f.y > 0.66 ? 1 : 0)
-        switch (xq, yq) {
-        case (-1, -1): return .topLeading
-        case ( 0, -1): return .top
-        case ( 1, -1): return .topTrailing
-        case (-1,  0): return .leading
-        case ( 0,  0): return .center
-        case ( 1,  0): return .trailing
-        case (-1,  1): return .bottomLeading
-        case ( 0,  1): return .bottom
-        case ( 1,  1): return .bottomTrailing
-        default: return .top
-        }
-    }
+private struct HeroLayout {
+    let containerWidth: CGFloat
+    let containerHeight: CGFloat
+    let imageWidth: CGFloat
+    let imageHeight: CGFloat
+    let offsetX: CGFloat
+    let offsetY: CGFloat
 }
