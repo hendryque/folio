@@ -44,6 +44,7 @@ struct ContentView: View {
                 selectedTab: $selectedTab,
                 searchFocused: $searchFocused,
                 language: language,
+                onLogoTap: tapLogo,
                 onLanguageToggle: toggleLanguage,
                 onRandomTap: tapRandom,
                 onSettingsTap: { showSettings = true }
@@ -108,6 +109,13 @@ struct ContentView: View {
         guard let settings else { return }
         settings.defaultLanguage = settings.defaultLanguage == "en" ? "de" : "en"
         try? modelContext.save()
+    }
+
+    private func tapLogo() {
+        searchFocused = false
+        searchText = ""
+        selectedTab = .today
+        todayPath = NavigationPath()
     }
 
     private func tapRandom() {

@@ -6,6 +6,7 @@ struct TopHeader: View {
     @FocusState.Binding var searchFocused: Bool
 
     let language: String
+    let onLogoTap: () -> Void
     let onLanguageToggle: () -> Void
     let onRandomTap: () -> Void
     let onSettingsTap: () -> Void
@@ -13,7 +14,11 @@ struct TopHeader: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 10) {
-                FolioLogo()
+                Button(action: onLogoTap) {
+                    FolioLogo()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Home")
 
                 SearchBar(text: $searchText, focused: $searchFocused)
 
@@ -65,7 +70,6 @@ private struct FolioLogo: View {
                 .fill(Color.accentColor)
                 .frame(width: 14, height: 1.5)
         }
-        .accessibilityLabel("Folio")
     }
 }
 
