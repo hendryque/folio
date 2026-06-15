@@ -50,12 +50,23 @@ final class CachedArticle {
     var language: String
     var html: String
     var cachedAt: Date
+    var focalPointX: Double?
+    var focalPointY: Double?
 
-    init(title: String, language: String, html: String, cachedAt: Date = .now) {
+    init(
+        title: String,
+        language: String,
+        html: String,
+        cachedAt: Date = .now,
+        focalPointX: Double? = nil,
+        focalPointY: Double? = nil
+    ) {
         self.title = title
         self.language = language
         self.html = html
         self.cachedAt = cachedAt
+        self.focalPointX = focalPointX
+        self.focalPointY = focalPointY
     }
 }
 

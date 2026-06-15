@@ -24,6 +24,7 @@ struct ArticleReaderView: View {
     @State private var alternateLink: LangLink?
     @State private var pushedArticle: ArticleDestination?
     @State private var heroFocalPoint: CGPoint?
+    @State private var visionComplete: Bool = false
     @State private var initialScrollY: Double = 0
     @State private var currentScrollY: Double = 0
     @State private var toolbarVisible: Bool = true
@@ -89,7 +90,11 @@ struct ArticleReaderView: View {
 
     @ViewBuilder
     private var content: some View {
-        if let html {
+        // Hold the WebView back until we also know the hero focal point.
+        // Cached articles resolve focal instantly from the CachedArticle row;
+        // first-visit articles wait for Vision (~300-700ms) so the WebView
+        // renders with the correct crop on its very first paint — no flash.
+        if let html, visionComplete {
             ArticleWebView(
                 html: html,
                 baseURL: baseURL,
@@ -195,15 +200,47 @@ struct ArticleReaderView: View {
         loadError = nil
         alternateLink = nil
         heroFocalPoint = nil
+        visionComplete = false
         galleryItems = []
         initialScrollY = await loadSavedScrollPosition()
-        async let summaryTask: () = loadSummary()
+
+        // Summary first — needed for the focal-point image URL.
+        await loadSummary()
+
         async let htmlTask: () = loadHTML()
         async let langlinksTask: () = loadLanglinks()
         async let galleryTask: () = loadGallery()
-        _ = await (summaryTask, htmlTask, langlinksTask, galleryTask)
+        async let focalTask: () = resolveHeroFocalPoint()
+
+        _ = await (htmlTask, langlinksTask, galleryTask, focalTask)
+
+        visionComplete = true
         recordHistoryIfNeeded()
-        await detectHeroFocalPoint()
+    }
+
+    /// Resolves the hero focal point via cache → Vision → persist. Cached articles
+    /// return instantly; new articles run face detection once and write the result
+    /// back to CachedArticle so the next session is also flash-free.
+    private func resolveHeroFocalPoint() async {
+        if let cached = fetchCachedArticle(),
+           let x = cached.focalPointX, let y = cached.focalPointY {
+            heroFocalPoint = CGPoint(x: x, y: y)
+            return
+        }
+
+        guard let url = summary?.originalImageURL ?? summary?.thumbnailURL else { return }
+        let focal = await FocalPointDetector.shared.focalPoint(for: url)
+        heroFocalPoint = focal
+        if let focal {
+            persistFocalPoint(focal)
+        }
+    }
+
+    private func persistFocalPoint(_ focal: CGPoint) {
+        guard let entry = fetchCachedArticle() else { return }
+        entry.focalPointX = focal.x
+        entry.focalPointY = focal.y
+        try? modelContext.save()
     }
 
     private func loadGallery() async {
@@ -270,10 +307,6 @@ struct ArticleReaderView: View {
         }
     }
 
-    private func detectHeroFocalPoint() async {
-        guard let url = summary?.originalImageURL ?? summary?.thumbnailURL else { return }
-        heroFocalPoint = await FocalPointDetector.shared.focalPoint(for: url)
-    }
 
     private func loadLanglinks() async {
         let links = (try? await WikipediaClient.shared.langlinks(title: title, language: language)) ?? []
