@@ -288,26 +288,21 @@ section[data-mw-section-id] {
 
 /* Section dividers inside the infobox (Career information / Career history / Medals etc.).
    Wikipedia hard-codes team colors here; lazy.js strips the inline styles so we can
-   style cleanly. */
+   style cleanly. Keep the typesetting in line with the article body — bold serif, no
+   italic, no extra border (the row already has border-bottom from .infobox th/td). */
 .infobox th.infobox-header,
 .infobox .infobox-header {
     text-align: left;
     font-family: "EB Garamond", "New York", ui-serif, serif;
     font-weight: 700;
-    font-style: italic;
-    font-size: 1.05em;
+    font-style: normal;
+    font-size: 1em;
     color: var(--folio-fg);
-    padding: 14px 0 6px 0;
+    padding: 12px 0 6px 0;
     background: transparent;
     border: 0;
-    border-top: 1px solid var(--folio-divider);
-    border-bottom: 0;
     text-transform: none;
     letter-spacing: 0;
-}
-.infobox tr:first-child > .infobox-header {
-    border-top: 0;
-    padding-top: 4px;
 }
 
 /* Nested tables inside the infobox (Medals, etc.) — Wikipedia templates inject hard
