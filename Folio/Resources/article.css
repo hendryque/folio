@@ -290,6 +290,16 @@ section[data-mw-section-id] {
 /* Gap between the label column (TH) and the value column (TD) — otherwise
    they touch (e.g. de.wiki "Geburtstag23. Juli 1987"). */
 .infobox th { padding-right: 14px; white-space: nowrap; }
+/* Long German compounds (`Umgangssprache`, `Bevölkerungsentwicklung`) are
+   one indivisible token to the line-breaker, so they bloat the value column
+   and force the whole table to overflow the card. Prefer OS-driven syllable
+   hyphenation (mobile-html ships lang="de" so iOS picks the right dictionary),
+   fall back to a mid-word break as a last resort. */
+.infobox td {
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+}
 .infobox tr:last-child th,
 .infobox tr:last-child td { border-bottom: 0; }
 
