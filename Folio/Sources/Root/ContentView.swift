@@ -254,6 +254,7 @@ extension View {
     func articleDestination(language: String) -> some View {
         navigationDestination(for: ArticleDestination.self) { destination in
             ArticleReaderView(title: destination.title, language: destination.language ?? language)
+                .background(PopGestureEnabler())
         }
     }
 }
