@@ -251,6 +251,14 @@ struct ArticleReaderView: View {
     }
 
     private func loadAll() async {
+        // .task(id:) cancels on disappear and restarts on re-appear — even
+        // when identityKey is unchanged (e.g. navigating to a sub-article
+        // and swiping back). Without this guard, every back-swipe would
+        // blow away visionComplete/webViewReady, unmount the WebView, and
+        // strand the user on the preview waiting for didFinish on a freshly-
+        // remounted pane. If we're already painted, do nothing.
+        if webViewReady { return }
+
         loadError = nil
         alternateLink = nil
         heroFocalPoint = nil
