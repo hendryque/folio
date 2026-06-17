@@ -394,15 +394,45 @@ struct ArticleReaderView: View {
     private func recordHistoryIfNeeded() {
         guard !historyRecorded else { return }
         historyRecorded = true
+        // Backfill from any prior record when the live summary came back
+        // without metadata (typical on flaky cellular) — otherwise the same
+        // article shows up with a thumbnail one day and without it the next.
+        let fallback = previousMetadata()
         modelContext.insert(
             HistoryEntry(
                 title: title,
                 language: language,
-                summary: summary?.description,
-                thumbnailURL: summary?.thumbnailURL
+                summary: summary?.description ?? fallback.summary,
+                thumbnailURL: summary?.thumbnailURL ?? fallback.thumbnailURL
             )
         )
         try? modelContext.save()
+    }
+
+    /// Find the most recent thumbnail / description we've previously stored
+    /// for this (title, language). Checks history first (more frequently
+    /// updated) then bookmarks.
+    private func previousMetadata() -> (summary: String?, thumbnailURL: URL?) {
+        let snapshotTitle = title
+        let snapshotLanguage = language
+        let historyDescriptor = FetchDescriptor<HistoryEntry>(
+            predicate: #Predicate { entry in
+                entry.title == snapshotTitle && entry.language == snapshotLanguage
+            },
+            sortBy: [SortDescriptor(\.readAt, order: .reverse)]
+        )
+        if let entry = try? modelContext.fetch(historyDescriptor).first(where: { $0.thumbnailURL != nil || $0.summary != nil }) {
+            return (entry.summary, entry.thumbnailURL)
+        }
+        let bookmarkDescriptor = FetchDescriptor<Bookmark>(
+            predicate: #Predicate { entry in
+                entry.title == snapshotTitle && entry.language == snapshotLanguage
+            }
+        )
+        if let entry = try? modelContext.fetch(bookmarkDescriptor).first {
+            return (entry.summary, entry.thumbnailURL)
+        }
+        return (nil, nil)
     }
 }
 

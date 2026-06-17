@@ -19,6 +19,19 @@ final class Bookmark {
 }
 
 @Model
+final class SearchHistoryEntry {
+    var query: String
+    var language: String
+    var searchedAt: Date
+
+    init(query: String, language: String, searchedAt: Date = .now) {
+        self.query = query
+        self.language = language
+        self.searchedAt = searchedAt
+    }
+}
+
+@Model
 final class HistoryEntry {
     var title: String
     var language: String

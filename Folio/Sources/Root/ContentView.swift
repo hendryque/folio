@@ -75,7 +75,7 @@ struct ContentView: View {
                 }
             case .history:
                 NavigationStack(path: $historyPath) {
-                    HistoryView()
+                    HistoryView(onRerunSearch: rerunSearch)
                         .toolbar(.hidden, for: .navigationBar)
                         .articleDestination(language: language)
                 }
@@ -118,6 +118,11 @@ struct ContentView: View {
         todayPath = NavigationPath()
     }
 
+    private func rerunSearch(_ query: String) {
+        searchText = query
+        searchFocused = true
+    }
+
     private func tapRandom() {
         Task { @MainActor in
             do {
@@ -150,6 +155,7 @@ private struct SearchResultsList: View {
     let query: String
     let language: String
 
+    @Environment(\.modelContext) private var modelContext
     @State private var results: [SearchResult] = []
     @State private var fetchTask: Task<Void, Never>?
 
@@ -159,11 +165,35 @@ private struct SearchResultsList: View {
                 NavigationLink(value: ArticleDestination(title: result.title, language: language)) {
                     SearchResultRow(result: result)
                 }
+                // Save the query to search history at the moment the user
+                // commits to a result. simultaneousGesture fires alongside
+                // the NavigationLink without preempting it.
+                .simultaneousGesture(TapGesture().onEnded {
+                    persistSearchQuery()
+                })
             }
         }
         .listStyle(.plain)
         .background(Color(.systemBackground))
         .task(id: query) { scheduleSearch(query) }
+    }
+
+    /// Insert a SearchHistoryEntry for the current query, deduping against any
+    /// identical query+language entry saved in the last 60s so a tap-back-tap
+    /// flurry doesn't fill history with the same word repeated.
+    private func persistSearchQuery() {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let lang = language
+        let cutoff = Date.now.addingTimeInterval(-60)
+        let descriptor = FetchDescriptor<SearchHistoryEntry>(
+            predicate: #Predicate { entry in
+                entry.query == trimmed && entry.language == lang && entry.searchedAt > cutoff
+            }
+        )
+        if let existing = try? modelContext.fetch(descriptor), !existing.isEmpty { return }
+        modelContext.insert(SearchHistoryEntry(query: trimmed, language: lang))
+        try? modelContext.save()
     }
 
     private func scheduleSearch(_ raw: String) {
