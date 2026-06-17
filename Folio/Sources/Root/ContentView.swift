@@ -50,7 +50,25 @@ struct ContentView: View {
                 onSettingsTap: { showSettings = true }
             )
 
-            navigationStack
+            // Active-tab NavigationStack is *always* mounted so its path
+            // and in-flight article reader survive typing in the search bar.
+            // Search results rise above it as an opaque overlay when
+            // `isSearching` — clearing the query drops the overlay and the
+            // tab is exactly where the user left it.
+            ZStack {
+                activeTabStack
+                if isSearching {
+                    NavigationStack(path: $searchPath) {
+                        SearchResultsList(query: searchText, language: language)
+                            .toolbar(.hidden, for: .navigationBar)
+                            .articleDestination(language: language)
+                            .background(PopGestureEnabler())
+                    }
+                    .background(Color(.systemBackground))
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.18), value: isSearching)
         }
         .preferredColorScheme(currentTheme.colorScheme)
         .task { ensureSettingsRow() }
@@ -58,40 +76,31 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    private var navigationStack: some View {
-        if isSearching {
-            NavigationStack(path: $searchPath) {
-                SearchResultsList(query: searchText, language: language)
+    private var activeTabStack: some View {
+        switch selectedTab {
+        case .today:
+            NavigationStack(path: $todayPath) {
+                TodayView()
                     .toolbar(.hidden, for: .navigationBar)
                     .articleDestination(language: language)
-                    .background(PopGestureEnabler())
             }
-        } else {
-            switch selectedTab {
-            case .today:
-                NavigationStack(path: $todayPath) {
-                    TodayView()
-                        .toolbar(.hidden, for: .navigationBar)
-                        .articleDestination(language: language)
-                }
-            case .history:
-                NavigationStack(path: $historyPath) {
-                    HistoryView(onRerunSearch: rerunSearch)
-                        .toolbar(.hidden, for: .navigationBar)
-                        .articleDestination(language: language)
-                }
-            case .bookmarks:
-                NavigationStack(path: $bookmarksPath) {
-                    BookmarksView()
-                        .toolbar(.hidden, for: .navigationBar)
-                        .articleDestination(language: language)
-                }
-            case .nearby:
-                NavigationStack(path: $nearbyPath) {
-                    NearbyView()
-                        .toolbar(.hidden, for: .navigationBar)
-                        .articleDestination(language: language)
-                }
+        case .history:
+            NavigationStack(path: $historyPath) {
+                HistoryView(onRerunSearch: rerunSearch)
+                    .toolbar(.hidden, for: .navigationBar)
+                    .articleDestination(language: language)
+            }
+        case .bookmarks:
+            NavigationStack(path: $bookmarksPath) {
+                BookmarksView()
+                    .toolbar(.hidden, for: .navigationBar)
+                    .articleDestination(language: language)
+            }
+        case .nearby:
+            NavigationStack(path: $nearbyPath) {
+                NearbyView()
+                    .toolbar(.hidden, for: .navigationBar)
+                    .articleDestination(language: language)
             }
         }
     }
