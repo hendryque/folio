@@ -26,6 +26,7 @@ struct ArticleReaderView: View {
     @State private var heroFocalPoint: CGPoint?
     @State private var visionComplete: Bool = false
     @State private var webViewReady: Bool = false
+    @State private var reloadToken = UUID()
     @State private var initialScrollY: Double = 0
     @State private var toolbarVisible: Bool = true
     @State private var toolbarRevealTask: Task<Void, Never>?
@@ -134,7 +135,8 @@ struct ArticleReaderView: View {
                     onInternalLink: { pushedArticle = $0 },
                     onScroll: handleScroll,
                     onActiveSection: { activeSectionAnchor = $0 },
-                    onReady: { webViewReady = true }
+                    onReady: { webViewReady = true },
+                    onReload: handleContentProcessTerminated
                 )
                 .ignoresSafeArea()
                 .opacity(webViewReady ? 1 : 0)
@@ -144,6 +146,11 @@ struct ArticleReaderView: View {
                 // leading-edge swipe before SwiftUI's interactive-pop ever sees
                 // it — so on a dead/stuck WebView, swipe-back stops working.
                 .allowsHitTesting(webViewReady)
+                // Roll the identity to remount the WebView after a content
+                // process crash. loadHTMLString-loaded views can't be reloaded
+                // via WKWebView.reload(); rebuilding the view is the only path
+                // that re-runs the render pipeline.
+                .id(reloadToken)
             }
 
             if !webViewReady {
@@ -286,6 +293,15 @@ struct ArticleReaderView: View {
 
     private func handleScroll(_ y: Double) {
         updateToolbarVisibility(forNewY: y)
+    }
+
+    /// Called when WKWebView's content process is terminated by iOS. Dropping
+    /// webViewReady re-overlays the preview; rolling reloadToken changes the
+    /// WebView's SwiftUI identity, so the next render dismantles the dead pane
+    /// and constructs a fresh one — which fires loadHTMLString cleanly.
+    private func handleContentProcessTerminated() {
+        webViewReady = false
+        reloadToken = UUID()
     }
 
     /// Idle-reveal pattern: any scroll fades the toolbar out; after 0.8s of no scroll

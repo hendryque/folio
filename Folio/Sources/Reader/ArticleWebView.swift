@@ -28,6 +28,7 @@ struct ArticleWebView: UIViewRepresentable {
     var onScroll: (Double) -> Void = { _ in }
     var onActiveSection: (String?) -> Void = { _ in }
     var onReady: () -> Void = {}
+    var onReload: () -> Void = {}
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
@@ -39,8 +40,21 @@ struct ArticleWebView: UIViewRepresentable {
             onInternalLink: onInternalLink,
             onScroll: onScroll,
             onActiveSection: onActiveSection,
-            onReady: onReady
+            onReady: onReady,
+            onReload: onReload
         )
+    }
+
+    /// Tear down the user-content controller's strong references to the
+    /// Coordinator the instant SwiftUI dismantles the view. Without this, the
+    /// Coordinator + UserContentController + WKWebView triangle stays alive
+    /// after the SwiftUI view is gone — leaking on every push/pop.
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        webView.stopLoading()
+        webView.navigationDelegate = nil
+        let controller = webView.configuration.userContentController
+        controller.removeAllScriptMessageHandlers()
+        controller.removeAllUserScripts()
     }
 
     func makeUIView(context: Context) -> WKWebView {
@@ -81,6 +95,7 @@ struct ArticleWebView: UIViewRepresentable {
         context.coordinator.onScroll = onScroll
         context.coordinator.onActiveSection = onActiveSection
         context.coordinator.onReady = onReady
+        context.coordinator.onReload = onReload
         context.coordinator.initialScrollY = initialScrollY
 
         // Stable hash deliberately excludes theme and fontScale so swapping themes
@@ -142,6 +157,7 @@ struct ArticleWebView: UIViewRepresentable {
         var onScroll: (Double) -> Void
         var onActiveSection: (String?) -> Void
         var onReady: () -> Void
+        var onReload: () -> Void
 
         var lastHash: Int = 0
         weak var webView: WKWebView?
@@ -163,7 +179,8 @@ struct ArticleWebView: UIViewRepresentable {
             onInternalLink: @escaping (ArticleDestination) -> Void,
             onScroll: @escaping (Double) -> Void,
             onActiveSection: @escaping (String?) -> Void,
-            onReady: @escaping () -> Void
+            onReady: @escaping () -> Void,
+            onReload: @escaping () -> Void
         ) {
             self.currentTitle = currentTitle
             self.initialScrollY = initialScrollY
@@ -174,6 +191,7 @@ struct ArticleWebView: UIViewRepresentable {
             self.onScroll = onScroll
             self.onActiveSection = onActiveSection
             self.onReady = onReady
+            self.onReload = onReload
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -227,10 +245,12 @@ struct ArticleWebView: UIViewRepresentable {
         }
 
         /// If iOS reaps our content process (memory pressure, jetsam, etc.)
-        /// the WebView is left as a dead pane — nothing renders, no further
-        /// callbacks fire. Reload restores the document.
+        /// the WebView is left as a dead pane and `reload()` is a no-op for
+        /// content loaded via `loadHTMLString` — there's no URL to reload.
+        /// Bubble back to SwiftUI so it can re-roll the WebView identity and
+        /// remount a fresh one through the regular render pipeline.
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-            webView.reload()
+            onReload()
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

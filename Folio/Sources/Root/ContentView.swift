@@ -64,6 +64,7 @@ struct ContentView: View {
                 SearchResultsList(query: searchText, language: language)
                     .toolbar(.hidden, for: .navigationBar)
                     .articleDestination(language: language)
+                    .background(PopGestureEnabler())
             }
         } else {
             switch selectedTab {
