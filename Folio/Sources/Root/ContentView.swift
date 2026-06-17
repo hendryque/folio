@@ -7,11 +7,19 @@ struct ContentView: View {
 
     @State private var searchText = ""
     @State private var selectedTab: Tab = .today
-    @State private var todayPath = NavigationPath()
-    @State private var historyPath = NavigationPath()
-    @State private var bookmarksPath = NavigationPath()
-    @State private var nearbyPath = NavigationPath()
-    @State private var searchPath = NavigationPath()
+    @State private var todayPath: [ArticleDestination] = []
+    @State private var historyPath: [ArticleDestination] = []
+    @State private var bookmarksPath: [ArticleDestination] = []
+    @State private var nearbyPath: [ArticleDestination] = []
+    @State private var searchPath: [ArticleDestination] = []
+    @State private var todayForward: [ArticleDestination] = []
+    @State private var historyForward: [ArticleDestination] = []
+    @State private var bookmarksForward: [ArticleDestination] = []
+    @State private var nearbyForward: [ArticleDestination] = []
+    // Set true just before goForward mutates a path, consumed by the
+    // path's onChange so the new push doesn't get treated as a fresh
+    // user navigation (which would clear the forward stack).
+    @State private var forwardInProgress = false
     @State private var nearbyRecenterToken = UUID()
     @State private var showSettings = false
     @FocusState private var searchFocused: Bool
@@ -85,25 +93,95 @@ struct ContentView: View {
                 TodayView()
                     .toolbar(.hidden, for: .navigationBar)
                     .articleDestination(language: language)
+                    .background(ForwardGestureEnabler(
+                        onForward: { goForward(.today) },
+                        isEnabled: !todayForward.isEmpty
+                    ))
             }
+            .onChange(of: todayPath) { old, new in observePathChange(.today, old: old, new: new) }
         case .history:
             NavigationStack(path: $historyPath) {
                 HistoryView(onRerunSearch: rerunSearch)
                     .toolbar(.hidden, for: .navigationBar)
                     .articleDestination(language: language)
+                    .background(ForwardGestureEnabler(
+                        onForward: { goForward(.history) },
+                        isEnabled: !historyForward.isEmpty
+                    ))
             }
+            .onChange(of: historyPath) { old, new in observePathChange(.history, old: old, new: new) }
         case .bookmarks:
             NavigationStack(path: $bookmarksPath) {
                 BookmarksView()
                     .toolbar(.hidden, for: .navigationBar)
                     .articleDestination(language: language)
+                    .background(ForwardGestureEnabler(
+                        onForward: { goForward(.bookmarks) },
+                        isEnabled: !bookmarksForward.isEmpty
+                    ))
             }
+            .onChange(of: bookmarksPath) { old, new in observePathChange(.bookmarks, old: old, new: new) }
         case .nearby:
             NavigationStack(path: $nearbyPath) {
                 NearbyView(recenterToken: nearbyRecenterToken)
                     .toolbar(.hidden, for: .navigationBar)
                     .articleDestination(language: language)
+                    .background(ForwardGestureEnabler(
+                        onForward: { goForward(.nearby) },
+                        isEnabled: !nearbyForward.isEmpty
+                    ))
             }
+            .onChange(of: nearbyPath) { old, new in observePathChange(.nearby, old: old, new: new) }
+        }
+    }
+
+    /// Pop → push popped destinations onto the forward stack (newest last).
+    /// Push by the user → clear the forward stack (browser semantic: any new
+    /// navigation invalidates the forward trail). A push from `goForward`
+    /// itself is signalled via `forwardInProgress` and skips the clear.
+    private func observePathChange(_ tab: Tab, old: [ArticleDestination], new: [ArticleDestination]) {
+        if new.count < old.count {
+            // Multiple items can be popped at once (e.g. logo-tap reset).
+            // Capture them in pop order so forward = reverse of pops.
+            let popped = old[new.count..<old.count].reversed()
+            switch tab {
+            case .today: todayForward.append(contentsOf: popped)
+            case .history: historyForward.append(contentsOf: popped)
+            case .bookmarks: bookmarksForward.append(contentsOf: popped)
+            case .nearby: nearbyForward.append(contentsOf: popped)
+            }
+        } else if new.count > old.count {
+            if forwardInProgress {
+                forwardInProgress = false
+            } else {
+                switch tab {
+                case .today: todayForward = []
+                case .history: historyForward = []
+                case .bookmarks: bookmarksForward = []
+                case .nearby: nearbyForward = []
+                }
+            }
+        }
+    }
+
+    private func goForward(_ tab: Tab) {
+        switch tab {
+        case .today:
+            guard let next = todayForward.popLast() else { return }
+            forwardInProgress = true
+            todayPath.append(next)
+        case .history:
+            guard let next = historyForward.popLast() else { return }
+            forwardInProgress = true
+            historyPath.append(next)
+        case .bookmarks:
+            guard let next = bookmarksForward.popLast() else { return }
+            forwardInProgress = true
+            bookmarksPath.append(next)
+        case .nearby:
+            guard let next = nearbyForward.popLast() else { return }
+            forwardInProgress = true
+            nearbyPath.append(next)
         }
     }
 
@@ -127,7 +205,7 @@ struct ContentView: View {
         searchFocused = false
         searchText = ""
         selectedTab = .today
-        todayPath = NavigationPath()
+        todayPath = []
     }
 
     private func rerunSearch(_ query: String) {
@@ -141,12 +219,12 @@ struct ContentView: View {
     /// back to the user's current location.
     private func handleTabReselect(_ tab: ContentView.Tab) {
         switch tab {
-        case .today: todayPath = NavigationPath()
-        case .history: historyPath = NavigationPath()
-        case .bookmarks: bookmarksPath = NavigationPath()
+        case .today: todayPath = []
+        case .history: historyPath = []
+        case .bookmarks: bookmarksPath = []
         case .nearby:
             if !nearbyPath.isEmpty {
-                nearbyPath = NavigationPath()
+                nearbyPath = []
             } else {
                 nearbyRecenterToken = UUID()
             }
