@@ -61,9 +61,17 @@ enum ArticleHTML {
             </header>
             """#
         }
+        // CSS escape: the URL goes inside a single-quoted CSS `url('…')`
+        // declaration inside a `style=` attribute. Backslashes start CSS
+        // escape sequences and survive URL encoding round-trips; newlines
+        // would terminate the property declaration. Encode them along with
+        // the quote characters.
         let safeURL = url.absoluteString
+            .replacingOccurrences(of: "\\", with: "%5C")
             .replacingOccurrences(of: "\"", with: "%22")
             .replacingOccurrences(of: "'", with: "%27")
+            .replacingOccurrences(of: "\n", with: "%0A")
+            .replacingOccurrences(of: "\r", with: "%0D")
         let position: String
         if let focal = focalPoint {
             let px = max(0, min(100, focal.x * 100))

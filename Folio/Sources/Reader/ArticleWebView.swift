@@ -61,6 +61,11 @@ struct ArticleWebView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        // Non-persistent: cookies, localStorage, IndexedDB live only for the
+        // lifetime of this WebView and never persist to disk. We have no need
+        // for cross-load state and this eliminates a fingerprinting / tracking
+        // surface from malicious article content.
+        configuration.websiteDataStore = .nonPersistent()
         configuration.setURLSchemeHandler(FontURLSchemeHandler(), forURLScheme: FontURLSchemeHandler.scheme)
 
         let controller = WKUserContentController()
@@ -133,8 +138,13 @@ struct ArticleWebView: UIViewRepresentable {
         }
 
         if let anchor = pendingScrollAnchor {
-            let safe = anchor.replacingOccurrences(of: "'", with: "\\'")
-            webView.evaluateJavaScript("window.folioScrollToAnchor && window.folioScrollToAnchor('\(safe)')")
+            // JSON-encode the anchor so backslashes, newlines, quotes, and any
+            // other special character are escaped to a valid JS string literal.
+            // Anchors originate from article HTML and section IDs (untrusted) —
+            // ad-hoc quote escaping is a JS-injection vector.
+            let data = (try? JSONEncoder().encode(anchor)) ?? Data("\"\"".utf8)
+            let json = String(data: data, encoding: .utf8) ?? "\"\""
+            webView.evaluateJavaScript("window.folioScrollToAnchor && window.folioScrollToAnchor(\(json))")
             Task { @MainActor in pendingScrollAnchor = nil }
         }
     }
@@ -163,11 +173,11 @@ struct ArticleWebView: UIViewRepresentable {
         weak var webView: WKWebView?
 
         private static let nonArticleNamespaces: Set<String> = [
-            "File", "Image", "Media", "Special", "Help", "Wikipedia", "WP",
-            "Category", "Template", "Portal", "Talk", "User", "User_talk",
-            "Template_talk", "Category_talk", "File_talk", "Wikipedia_talk",
-            "Help_talk", "Portal_talk", "Draft", "Draft_talk", "MediaWiki",
-            "Module", "Module_talk", "TimedText", "Book"
+            "file", "image", "media", "special", "help", "wikipedia", "wp",
+            "category", "template", "portal", "talk", "user", "user_talk",
+            "template_talk", "category_talk", "file_talk", "wikipedia_talk",
+            "help_talk", "portal_talk", "draft", "draft_talk", "mediawiki",
+            "module", "module_talk", "timedtext", "book"
         ]
 
         init(
@@ -216,7 +226,8 @@ struct ArticleWebView: UIViewRepresentable {
                 guard
                     let dict = body as? [String: Any],
                     let urlString = dict["url"] as? String,
-                    let url = URL(string: urlString)
+                    let url = URL(string: urlString),
+                    url.scheme?.lowercased() == "https"
                 else { return }
                 onImageTap(url)
 
@@ -265,13 +276,21 @@ struct ArticleWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction) async -> WKNavigationActionPolicy {
-            guard
-                navigationAction.navigationType == .linkActivated,
-                let url = navigationAction.request.url
-            else {
+            guard let url = navigationAction.request.url else { return .allow }
+
+            if navigationAction.navigationType == .linkActivated {
+                return await classify(url: url)
+            }
+
+            // Non-link navigation (initial load, location.href = ..., form
+            // submits, back/forward): only allow https, our font scheme, or
+            // about:. Blocks javascript:, data:, file: redirects from
+            // malicious article content.
+            let scheme = url.scheme?.lowercased()
+            if scheme == "https" || scheme == FontURLSchemeHandler.scheme || scheme == "about" {
                 return .allow
             }
-            return await classify(url: url)
+            return .cancel
         }
 
         private func classify(url: URL) async -> WKNavigationActionPolicy {
@@ -293,9 +312,11 @@ struct ArticleWebView: UIViewRepresentable {
                 return .allow
             }
 
-            // Namespaced wiki pages (File:, Special:, etc.) are not articles
+            // Namespaced wiki pages (File:, Special:, etc.) are not articles.
+            // Wikipedia treats namespace prefixes case-insensitively on the
+            // first character (`/wiki/special:Export` is valid). Normalise.
             if let colonRange = decoded.range(of: ":") {
-                let namespace = String(decoded[..<colonRange.lowerBound])
+                let namespace = String(decoded[..<colonRange.lowerBound]).lowercased()
                 if Self.nonArticleNamespaces.contains(namespace) {
                     await UIApplication.shared.open(url)
                     return .cancel
