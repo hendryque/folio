@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var bookmarksPath = NavigationPath()
     @State private var nearbyPath = NavigationPath()
     @State private var searchPath = NavigationPath()
+    @State private var nearbyRecenterToken = UUID()
     @State private var showSettings = false
     @FocusState private var searchFocused: Bool
 
@@ -47,7 +48,8 @@ struct ContentView: View {
                 onLogoTap: tapLogo,
                 onLanguageToggle: toggleLanguage,
                 onRandomTap: tapRandom,
-                onSettingsTap: { showSettings = true }
+                onSettingsTap: { showSettings = true },
+                onReselectTab: handleTabReselect
             )
 
             // Active-tab NavigationStack is *always* mounted so its path
@@ -98,7 +100,7 @@ struct ContentView: View {
             }
         case .nearby:
             NavigationStack(path: $nearbyPath) {
-                NearbyView()
+                NearbyView(recenterToken: nearbyRecenterToken)
                     .toolbar(.hidden, for: .navigationBar)
                     .articleDestination(language: language)
             }
@@ -131,6 +133,24 @@ struct ContentView: View {
     private func rerunSearch(_ query: String) {
         searchText = query
         searchFocused = true
+    }
+
+    /// Re-tap on the already-selected tab. Standard iOS pattern: pop to root.
+    /// Nearby is special — there's nothing to pop visually (it's a map), so
+    /// re-tap bumps a recenter token NearbyView observes to jump the camera
+    /// back to the user's current location.
+    private func handleTabReselect(_ tab: ContentView.Tab) {
+        switch tab {
+        case .today: todayPath = NavigationPath()
+        case .history: historyPath = NavigationPath()
+        case .bookmarks: bookmarksPath = NavigationPath()
+        case .nearby:
+            if !nearbyPath.isEmpty {
+                nearbyPath = NavigationPath()
+            } else {
+                nearbyRecenterToken = UUID()
+            }
+        }
     }
 
     private func tapRandom() {

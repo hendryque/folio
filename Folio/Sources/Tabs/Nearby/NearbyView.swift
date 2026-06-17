@@ -5,6 +5,8 @@ import CoreLocation
 import UIKit
 
 struct NearbyView: View {
+    let recenterToken: UUID
+
     @Query private var settingsList: [AppSettings]
     @State private var locationProvider = LocationProvider()
     @State private var articles: [NearbyArticle] = []
@@ -37,10 +39,28 @@ struct NearbyView: View {
         .onChange(of: locationProvider.coordinate?.latitude) { _, _ in
             handleCoordinateChange()
         }
+        .onChange(of: recenterToken) { _, _ in
+            recenterOnUser()
+        }
         .onAppear { locationProvider.startUpdates() }
         .onDisappear {
             locationProvider.stopUpdates()
             fetchTask?.cancel()
+        }
+    }
+
+    /// Re-tap on the Nearby tab from the parent → jump the camera back to
+    /// the user's current location. Mirrors the MapUserLocationButton's
+    /// action so the tab gesture itself becomes a quick "where am I" hook.
+    private func recenterOnUser() {
+        guard let coord = locationProvider.coordinate else { return }
+        withAnimation(.easeInOut(duration: 0.4)) {
+            cameraPosition = .region(
+                MKCoordinateRegion(
+                    center: coord,
+                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+                )
+            )
         }
     }
 

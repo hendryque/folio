@@ -10,6 +10,7 @@ struct TopHeader: View {
     let onLanguageToggle: () -> Void
     let onRandomTap: () -> Void
     let onSettingsTap: () -> Void
+    let onReselectTab: (ContentView.Tab) -> Void
 
     var body: some View {
         VStack(spacing: 8) {
@@ -49,7 +50,7 @@ struct TopHeader: View {
             .padding(.horizontal, 14)
             .padding(.top, 6)
 
-            TabIconRow(selectedTab: $selectedTab)
+            TabIconRow(selectedTab: $selectedTab, onReselectTab: onReselectTab)
         }
         .background(.regularMaterial)
         .overlay(alignment: .bottom) {
@@ -108,6 +109,7 @@ private struct SearchBar: View {
 
 private struct TabIconRow: View {
     @Binding var selectedTab: ContentView.Tab
+    let onReselectTab: (ContentView.Tab) -> Void
 
     var body: some View {
         HStack(spacing: 0) {
@@ -115,6 +117,8 @@ private struct TabIconRow: View {
                 TabIconButton(tab: tab, isSelected: selectedTab == tab) {
                     if selectedTab != tab {
                         selectedTab = tab
+                    } else {
+                        onReselectTab(tab)
                     }
                 }
             }
