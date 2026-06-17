@@ -30,6 +30,7 @@ struct ArticleReaderView: View {
     @State private var initialScrollY: Double = 0
     @State private var toolbarVisible: Bool = true
     @State private var toolbarRevealTask: Task<Void, Never>?
+    @State private var refreshTask: Task<Void, Never>?
     @State private var activeSectionAnchor: String?
 
     var body: some View {
@@ -94,11 +95,21 @@ struct ArticleReaderView: View {
         // Header EN/DE toggle changes AppSettings.defaultLanguage. When the user is
         // in an article and that global language differs from the current article's,
         // jump to the alternate-language version (if a langlink exists for it).
-        .onChange(of: settings?.defaultLanguage) { _, newLang in
+        .onChange(of: settings?.defaultLanguage) { oldLang, newLang in
+            // `oldLang == nil` means the @Query just resolved from "no settings
+            // row loaded yet" to "loaded" — that's not a user-driven toggle,
+            // so don't auto-push. Otherwise an opening article whose language
+            // differs from the persisted default would jump to the alt-lang
+            // version immediately on first load.
+            guard oldLang != nil else { return }
             guard let newLang, newLang != language else { return }
             if let alt = alternateLink, alt.lang == newLang {
                 pushedArticle = ArticleDestination(title: alt.title, language: alt.lang)
             }
+        }
+        .onDisappear {
+            refreshTask?.cancel()
+            toolbarRevealTask?.cancel()
         }
     }
 
@@ -247,6 +258,9 @@ struct ArticleReaderView: View {
         webViewReady = false
         galleryItems = []
         initialScrollY = 0
+        // A refresh from a previous identity must not race the new render.
+        refreshTask?.cancel()
+        refreshTask = nil
 
         // Summary first — needed for the focal-point image URL.
         await loadSummary()
@@ -347,7 +361,7 @@ struct ArticleReaderView: View {
         if let cached = fetchCachedArticle() {
             html = cached.html
             if Date.now.timeIntervalSince(cached.cachedAt) > Self.cacheTTL {
-                refreshHTMLInBackground()
+                scheduleRefresh()
             }
             return
         }
@@ -360,25 +374,27 @@ struct ArticleReaderView: View {
             html = fresh
             upsertCache(html: fresh)
         } catch {
+            if Task.isCancelled { return }
             loadError = error.localizedDescription
         }
     }
 
-    private func refreshHTMLInBackground() {
-        let snapshotTitle = title
-        let snapshotLanguage = language
-        Task { @MainActor in
-            guard
-                let fresh = try? await WikipediaClient.shared.mobileHTML(
-                    title: snapshotTitle,
-                    language: snapshotLanguage
-                )
-            else { return }
-            // If the user is still on this article, refresh the view.
-            if snapshotTitle == title && snapshotLanguage == language {
+    /// Tracked, cancellable background refresh — previously a detached
+    /// `Task { @MainActor in ... }` that outlived view identity and could
+    /// still write into a stale view's `html` after the user had navigated
+    /// away and back. Now owned by view state and cancelled on disappear /
+    /// at the start of every fresh `loadAll`.
+    private func scheduleRefresh() {
+        refreshTask?.cancel()
+        refreshTask = Task { @MainActor in
+            do {
+                let fresh = try await WikipediaClient.shared.mobileHTML(title: title, language: language)
+                if Task.isCancelled { return }
                 html = fresh
+                upsertCache(html: fresh)
+            } catch {
+                // Silent — stale cache stays in place.
             }
-            upsertCache(html: fresh)
         }
     }
 
@@ -410,6 +426,33 @@ struct ArticleReaderView: View {
     private func recordHistoryIfNeeded() {
         guard !historyRecorded else { return }
         historyRecorded = true
+
+        // Cross-instance dedup: if the same article was recorded in the last
+        // 30s (typical of an A → B → back-to-A swipe-and-tap), just bump its
+        // readAt instead of inserting a duplicate row. The `historyRecorded`
+        // guard above is per-view-instance; this catches the case where the
+        // view itself was reborn.
+        let snapshotTitle = title
+        let snapshotLanguage = language
+        let cutoff = Date.now.addingTimeInterval(-30)
+        let recentDescriptor = FetchDescriptor<HistoryEntry>(
+            predicate: #Predicate { entry in
+                entry.title == snapshotTitle && entry.language == snapshotLanguage && entry.readAt > cutoff
+            }
+        )
+        if let recent = try? modelContext.fetch(recentDescriptor).first {
+            recent.readAt = .now
+            // Backfill thumb/summary if the recent row was missing it.
+            if recent.thumbnailURL == nil, let url = summary?.thumbnailURL {
+                recent.thumbnailURL = url
+            }
+            if recent.summary == nil, let desc = summary?.description {
+                recent.summary = desc
+            }
+            try? modelContext.save()
+            return
+        }
+
         // Backfill from any prior record when the live summary came back
         // without metadata (typical on flaky cellular) — otherwise the same
         // article shows up with a thumbnail one day and without it the next.
