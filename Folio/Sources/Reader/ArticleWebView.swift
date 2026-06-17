@@ -9,6 +9,13 @@ struct ArticleSection: Identifiable, Hashable, Sendable {
 }
 
 struct ArticleWebView: UIViewRepresentable {
+    /// A single shared content-process pool. Without this, each
+    /// `WKWebViewConfiguration` gets its own pool and iOS quickly hits its cap
+    /// on simultaneous web-content processes as the user navigates from
+    /// article to article — once the cap is reached, new web views spawn dead
+    /// (didFinish never fires, page stays on "Loading article…").
+    private static let processPool = WKProcessPool()
+
     let html: String
     let baseURL: URL
     let language: String
@@ -45,6 +52,7 @@ struct ArticleWebView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
+        configuration.processPool = Self.processPool
         configuration.allowsInlineMediaPlayback = true
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.setURLSchemeHandler(FontURLSchemeHandler(), forURLScheme: FontURLSchemeHandler.scheme)
@@ -224,6 +232,13 @@ struct ArticleWebView: UIViewRepresentable {
             default:
                 break
             }
+        }
+
+        /// If iOS reaps our content process (memory pressure, jetsam, etc.)
+        /// the WebView is left as a dead pane — nothing renders, no further
+        /// callbacks fire. Reload restores the document.
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            webView.reload()
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

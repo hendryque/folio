@@ -138,6 +138,12 @@ struct ArticleReaderView: View {
                 )
                 .ignoresSafeArea()
                 .opacity(webViewReady ? 1 : 0)
+                // Critical: SwiftUI's .opacity(0) does NOT disable hit testing
+                // for a UIKit view nested in a UIViewRepresentable. Without this,
+                // WKWebView's scroll-view gesture recognizers grab the
+                // leading-edge swipe before SwiftUI's interactive-pop ever sees
+                // it — so on a dead/stuck WebView, swipe-back stops working.
+                .allowsHitTesting(webViewReady)
             }
 
             if !webViewReady {
