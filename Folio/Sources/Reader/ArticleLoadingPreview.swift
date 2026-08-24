@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Shown the moment `summary` is available — typically ~150ms after tapping a tile —
 /// while `mobile-html` is still in flight. Visually approximates the WebView reader
@@ -26,24 +27,27 @@ struct ArticleLoadingPreview: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                if let url = heroRef?.source {
+                // Same sized URL the WebView hero uses, so the preview and the
+                // article share one download and one cache entry.
+                if let url = summary.imageURL(width: ThumbnailWidth.hero) {
                     hero(url: url)
                 } else {
                     Text(displayTitle)
-                        .font(.custom("EBGaramond-Italic", size: 34 * fontScale, relativeTo: .largeTitle))
+                        .font(.custom("EBGaramond-Italic", size: titleSize, relativeTo: .largeTitle))
                         .foregroundStyle(.primary)
                         .padding(.horizontal, 20)
                         .padding(.top, 20)
                         .padding(.bottom, 16)
                 }
 
-                if let extract = summary.extract {
-                    Text(extract)
+                if summary.extract != nil {
+                    Text(styledExtract)
                         .font(.custom("EBGaramond-Regular", size: 17 * fontScale, relativeTo: .body))
                         .foregroundStyle(.primary)
-                        .lineSpacing(4)
+                        .lineSpacing(extractLineSpacing)
                         .padding(.horizontal, 20)
-                        .padding(.top, 16)
+                        // article.css: .folio-header's 28px bottom margin.
+                        .padding(.top, 28)
                 }
 
                 HStack(spacing: 8) {
@@ -66,6 +70,29 @@ struct ArticleLoadingPreview: View {
         summary.title.replacingOccurrences(of: "_", with: " ")
     }
 
+    /// article.css: .folio-title is 2.6em of the 17px body.
+    private var titleSize: Double { 44.2 * fontScale }
+
+    /// article.css body: 17px at line-height 1.62. SwiftUI's lineSpacing is
+    /// *extra* points on top of the font's natural leading — subtract it, or
+    /// the preview text sits visibly tighter than the rendered article and
+    /// the cross-fade reads as a jump.
+    private var extractLineSpacing: Double {
+        let size = 17 * fontScale
+        let natural = UIFont(name: "EBGaramond-Regular", size: size)?.lineHeight ?? size * 1.2
+        return max(0, size * 1.62 - natural)
+    }
+
+    /// The article body opens with the subject in bold — mirror it so the
+    /// swap to the WebView doesn't restyle the opening words.
+    private var styledExtract: AttributedString {
+        var attributed = AttributedString(summary.extract ?? "")
+        if let range = attributed.range(of: displayTitle), range.lowerBound == attributed.startIndex {
+            attributed[range].font = .custom("EBGaramond-Bold", size: 17 * fontScale, relativeTo: .body)
+        }
+        return attributed
+    }
+
     private var backgroundColor: Color {
         switch theme {
         case .sepia: Color(red: 0.957, green: 0.926, blue: 0.847)
@@ -79,7 +106,7 @@ struct ArticleLoadingPreview: View {
         GeometryReader { geo in
             let layout = heroLayout(containerWidth: geo.size.width)
             ZStack(alignment: .bottomLeading) {
-                AsyncImage(url: url) { phase in
+                RemoteImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
                         image
@@ -105,7 +132,7 @@ struct ArticleLoadingPreview: View {
                 .allowsHitTesting(false)
 
                 Text(displayTitle)
-                    .font(.custom("EBGaramond-Italic", size: 34 * fontScale, relativeTo: .largeTitle))
+                    .font(.custom("EBGaramond-Italic", size: titleSize, relativeTo: .largeTitle))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.45), radius: 12, y: 1)
                     .padding(.horizontal, 20)

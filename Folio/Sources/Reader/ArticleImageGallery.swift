@@ -61,7 +61,7 @@ struct ArticleImageGallery: View {
         Button {
             lightbox = IdentifiedURL(url: item.originalURL)
         } label: {
-            AsyncImage(url: item.thumbnailURL) { phase in
+            RemoteImage(url: item.thumbnailURL) { phase in
                 switch phase {
                 case .success(let image):
                     image.resizable().scaledToFit()

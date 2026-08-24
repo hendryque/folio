@@ -1,7 +1,6 @@
 import Foundation
 import Vision
 import CoreGraphics
-import ImageIO
 import UIKit
 
 /// Detects faces in remote images and returns the dominant focal point as
@@ -10,6 +9,11 @@ import UIKit
 /// — the caller falls back to a default crop (e.g. `50% 28%`).
 actor FocalPointDetector {
     static let shared = FocalPointDetector()
+
+    /// The crop used when no face is found — identical to article.css's
+    /// default `background-position: 50% 28%`, so persisting it as a resolved
+    /// focal point changes nothing visually while marking detection as done.
+    static let defaultCrop = CGPoint(x: 0.5, y: 0.28)
 
     private var cache: [URL: CGPoint?] = [:]
 
@@ -22,22 +26,12 @@ actor FocalPointDetector {
     }
 
     private func compute(for url: URL) async -> CGPoint? {
-        guard
-            let (data, response) = try? await URLSession.shared.data(from: url),
-            (response as? HTTPURLResponse).map({ 200..<300 ~= $0.statusCode }) ?? true,
-            let cgImage = Self.decodeCGImage(data)
-        else {
+        // Same loader (and cache key) the display views use, so detection
+        // shares the display's download and decode instead of re-fetching.
+        guard let cgImage = await ImageLoader.shared.image(for: url)?.cgImage else {
             return nil
         }
         return Self.detectFace(in: cgImage)
-    }
-
-    private static func decodeCGImage(_ data: Data) -> CGImage? {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-            return nil
-        }
-        return image
     }
 
     private static func detectFace(in image: CGImage) -> CGPoint? {

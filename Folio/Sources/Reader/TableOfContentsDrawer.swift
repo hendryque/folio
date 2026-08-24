@@ -66,7 +66,7 @@ struct TableOfContentsDrawer: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: thumbnailURL) { phase in
+            RemoteImage(url: thumbnailURL?.wikimediaResized(to: ThumbnailWidth.row)) { phase in
                 switch phase {
                 case .success(let image):
                     image.resizable().scaledToFill()

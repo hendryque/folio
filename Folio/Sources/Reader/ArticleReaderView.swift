@@ -24,6 +24,7 @@ struct ArticleReaderView: View {
     @State private var alternateLink: LangLink?
     @State private var pushedArticle: ArticleDestination?
     @State private var heroFocalPoint: CGPoint?
+    @State private var cachedHeroURL: URL?
     @State private var visionComplete: Bool = false
     @State private var webViewReady: Bool = false
     @State private var reloadToken = UUID()
@@ -134,7 +135,7 @@ struct ArticleReaderView: View {
                     baseURL: baseURL,
                     language: language,
                     currentTitle: title,
-                    heroImageURL: summary?.originalImageURL ?? summary?.thumbnailURL,
+                    heroImageURL: cachedHeroURL ?? summary?.imageURL(width: ThumbnailWidth.hero),
                     heroFocalPoint: heroFocalPoint,
                     theme: theme,
                     fontScale: fontScale,
@@ -262,6 +263,7 @@ struct ArticleReaderView: View {
         loadError = nil
         alternateLink = nil
         heroFocalPoint = nil
+        cachedHeroURL = nil
         visionComplete = false
         webViewReady = false
         galleryItems = []
@@ -270,42 +272,61 @@ struct ArticleReaderView: View {
         refreshTask?.cancel()
         refreshTask = nil
 
-        // Summary first — needed for the focal-point image URL.
-        await loadSummary()
+        // Prefetched / previously-read articles carry hero URL + focal point
+        // on the cache row, so the WebView mounts without a single network
+        // round trip. Both are required — mounting hero-less and reloading
+        // once the summary arrives would flash the whole document.
+        if let cached = fetchCachedArticle(),
+           let focal = cached.focalPoint, let hero = cached.heroImageURL {
+            heroFocalPoint = focal
+            cachedHeroURL = hero
+            visionComplete = true
+        }
 
+        // Langlinks and the gallery only feed toolbar buttons (which handle
+        // "not loaded yet" via disabled state) — they never gate first paint.
         async let htmlTask: () = loadHTML()
         async let langlinksTask: () = loadLanglinks()
         async let galleryTask: () = loadGallery()
-        async let focalTask: () = resolveHeroFocalPoint()
 
-        _ = await (htmlTask, langlinksTask, galleryTask, focalTask)
+        // Summary feeds the preview and share/bookmark metadata — and, when
+        // the cache had no focal point, the hero image Vision runs on.
+        await loadSummary()
+        if !visionComplete {
+            await resolveHeroFocalPoint()
+            visionComplete = true
+        }
 
-        visionComplete = true
+        _ = await htmlTask
+        // The cache row exists once loadHTML finished — write back whatever
+        // it's missing so the next open takes the no-network fast path.
+        if let focal = heroFocalPoint { persistFocalPoint(focal) }
         recordHistoryIfNeeded()
+        _ = await (langlinksTask, galleryTask)
     }
 
     /// Resolves the hero focal point via cache → Vision → persist. Cached articles
     /// return instantly; new articles run face detection once and write the result
-    /// back to CachedArticle so the next session is also flash-free.
+    /// back to CachedArticle so the next open is flash-free without any network.
     private func resolveHeroFocalPoint() async {
-        if let cached = fetchCachedArticle(),
-           let x = cached.focalPointX, let y = cached.focalPointY {
-            heroFocalPoint = CGPoint(x: x, y: y)
+        if let cached = fetchCachedArticle(), let focal = cached.focalPoint {
+            heroFocalPoint = focal
             return
         }
 
-        guard let url = summary?.originalImageURL ?? summary?.thumbnailURL else { return }
-        let focal = await FocalPointDetector.shared.focalPoint(for: url)
+        guard let url = summary?.imageURL(width: ThumbnailWidth.hero) else { return }
+        let focal = await FocalPointDetector.shared.focalPoint(for: url) ?? FocalPointDetector.defaultCrop
         heroFocalPoint = focal
-        if let focal {
-            persistFocalPoint(focal)
-        }
+        persistFocalPoint(focal)
     }
 
     private func persistFocalPoint(_ focal: CGPoint) {
         guard let entry = fetchCachedArticle() else { return }
         entry.focalPointX = focal.x
         entry.focalPointY = focal.y
+        if entry.heroImageURL == nil {
+            entry.heroImageURL = summary?.imageURL(width: ThumbnailWidth.hero)
+        }
         try? modelContext.save()
     }
 
@@ -368,7 +389,7 @@ struct ArticleReaderView: View {
         // render immediately, then we silently refresh in the background.
         if let cached = fetchCachedArticle() {
             html = cached.html
-            if Date.now.timeIntervalSince(cached.cachedAt) > Self.cacheTTL {
+            if !cached.isFresh {
                 scheduleRefresh()
             }
             return
@@ -407,29 +428,19 @@ struct ArticleReaderView: View {
     }
 
     private func fetchCachedArticle() -> CachedArticle? {
-        let snapshotTitle = title
-        let snapshotLanguage = language
-        let descriptor = FetchDescriptor<CachedArticle>(
-            predicate: #Predicate { entry in
-                entry.title == snapshotTitle && entry.language == snapshotLanguage
-            }
-        )
-        return try? modelContext.fetch(descriptor).first
+        CachedArticle.fetch(title: title, language: language, in: modelContext)
     }
 
     private func upsertCache(html: String) {
-        if let existing = fetchCachedArticle() {
-            existing.html = html
-            existing.cachedAt = .now
-        } else {
-            modelContext.insert(
-                CachedArticle(title: title, language: language, html: html)
-            )
-        }
-        try? modelContext.save()
+        CachedArticle.upsert(
+            title: title,
+            language: language,
+            html: html,
+            focalPoint: heroFocalPoint,
+            heroImageURL: summary?.imageURL(width: ThumbnailWidth.hero),
+            in: modelContext
+        )
     }
-
-    private static let cacheTTL: TimeInterval = 24 * 3600
 
     private func recordHistoryIfNeeded() {
         guard !historyRecorded else { return }

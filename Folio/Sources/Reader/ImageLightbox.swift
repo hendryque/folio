@@ -19,7 +19,10 @@ struct ImageLightbox: View {
             Color.black.ignoresSafeArea()
 
             GeometryReader { geometry in
-                AsyncImage(url: url) { phase in
+                // Full-res originals are legitimate here (pinch-zoom), but cap
+                // the decode: a 100-megapixel Commons scan would otherwise
+                // decompress to ~400MB and kill the app.
+                RemoteImage(url: url, maxPixelSize: 4096) { phase in
                     switch phase {
                     case .success(let image):
                         image

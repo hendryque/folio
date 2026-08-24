@@ -20,7 +20,7 @@ struct Tile: View {
     @State private var focalPoint: CGPoint?
 
     private var imageURL: URL? {
-        article.originalImageURL ?? article.thumbnailURL
+        article.imageURL(width: ThumbnailWidth.tile)
     }
 
     /// Maps the normalized focal point (top-left origin) to one of SwiftUI's nine
@@ -50,7 +50,7 @@ struct Tile: View {
             let height = geo.size.width * 4.0 / 3.0
             ZStack(alignment: .bottomLeading) {
                 tint
-                AsyncImage(url: imageURL) { phase in
+                RemoteImage(url: imageURL) { phase in
                     switch phase {
                     case .success(let image):
                         image

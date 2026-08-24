@@ -4,6 +4,7 @@ import SwiftData
 struct TodayView: View {
     @Query private var settingsList: [AppSettings]
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.modelContext) private var modelContext
 
     @State private var feed: FeaturedFeed?
     @State private var loadingError: String?
@@ -81,8 +82,18 @@ struct TodayView: View {
         defer { isLoading = false }
         loadingError = nil
         do {
-            feed = try await WikipediaClient.shared.featured(language: language)
+            let fetched = try await WikipediaClient.shared.featured(language: language)
+            feed = fetched
             lastFetched = .now
+            // Warm the first screenful of tiles so the grid paints images
+            // instead of tint blocks while the user starts scrolling — then
+            // (serially, low priority) the articles behind them, so a tap
+            // renders the full WebView immediately instead of the preview.
+            let upcoming = Array(tiles(from: fetched).prefix(8))
+            ImageLoader.shared.prefetch(
+                upcoming.compactMap { $0.imageURL(width: ThumbnailWidth.tile) }
+            )
+            ArticlePrefetcher.prefetch(upcoming, language: language, context: modelContext)
         } catch {
             loadingError = error.localizedDescription
         }
