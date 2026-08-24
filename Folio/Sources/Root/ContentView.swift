@@ -11,7 +11,6 @@ struct ContentView: View {
     @State private var historyPath: [ArticleDestination] = []
     @State private var bookmarksPath: [ArticleDestination] = []
     @State private var nearbyPath: [ArticleDestination] = []
-    @State private var searchPath: [ArticleDestination] = []
     @State private var todayForward: [ArticleDestination] = []
     @State private var historyForward: [ArticleDestination] = []
     @State private var bookmarksForward: [ArticleDestination] = []
@@ -63,16 +62,16 @@ struct ContentView: View {
             // Active-tab NavigationStack is *always* mounted so its path
             // and in-flight article reader survive typing in the search bar.
             // Search results rise above it as an opaque overlay when
-            // `isSearching` — clearing the query drops the overlay and the
-            // tab is exactly where the user left it.
+            // `isSearching`. The overlay is results-only: picking a result
+            // clears the query and pushes onto the active tab's stack, so
+            // clearing the search box can never close an open article.
             ZStack {
                 activeTabStack
                 if isSearching {
-                    NavigationStack(path: $searchPath) {
-                        SearchResultsList(query: searchText, language: language)
-                            .toolbar(.hidden, for: .navigationBar)
-                            .articleDestination(language: language)
-                            .background(PopGestureEnabler())
+                    SearchResultsList(query: searchText, language: language) { result in
+                        searchFocused = false
+                        searchText = ""
+                        appendToActivePath(ArticleDestination(title: result.title, language: language))
                     }
                     .background(Color(.systemBackground))
                     .transition(.opacity)
@@ -81,7 +80,10 @@ struct ContentView: View {
             .animation(.easeInOut(duration: 0.18), value: isSearching)
         }
         .preferredColorScheme(currentTheme.colorScheme)
-        .task { ensureSettingsRow() }
+        .task {
+            ensureSettingsRow()
+            applyScreenshotOverrides()
+        }
         .sheet(isPresented: $showSettings) { SettingsView() }
     }
 
@@ -262,6 +264,7 @@ struct ContentView: View {
 private struct SearchResultsList: View {
     let query: String
     let language: String
+    let onSelect: (SearchResult) -> Void
 
     @Environment(\.modelContext) private var modelContext
     @State private var results: [SearchResult] = []
@@ -270,15 +273,17 @@ private struct SearchResultsList: View {
     var body: some View {
         List {
             ForEach(results) { result in
-                NavigationLink(value: ArticleDestination(title: result.title, language: language)) {
+                // A plain Button, not a NavigationLink — the row must be
+                // tappable across its full width. (The previous NavigationLink
+                // + simultaneousGesture combo swallowed taps on the label,
+                // leaving only the chevron area active.)
+                Button {
+                    persistSearchQuery()
+                    onSelect(result)
+                } label: {
                     SearchResultRow(result: result)
                 }
-                // Save the query to search history at the moment the user
-                // commits to a result. simultaneousGesture fires alongside
-                // the NavigationLink without preempting it.
-                .simultaneousGesture(TapGesture().onEnded {
-                    persistSearchQuery()
-                })
+                .buttonStyle(.plain)
             }
         }
         .listStyle(.plain)
@@ -331,7 +336,7 @@ private struct SearchResultRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: result.thumbnailURL) { phase in
+            RemoteImage(url: result.thumbnailURL) { phase in
                 switch phase {
                 case .success(let image): image.resizable().scaledToFill()
                 case .failure, .empty: Color(.tertiarySystemFill)
@@ -354,6 +359,30 @@ private struct SearchResultRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+extension ContentView {
+    /// Click-free navigation for automated simulator screenshots, e.g.
+    /// `simctl launch <sim> me.scott.folio -screenshotTab nearby`,
+    /// `-screenshotArticle "Albert Einstein"`, `-screenshotSettings 1`.
+    /// simctl passes `-key value` pairs straight into UserDefaults.
+    fileprivate func applyScreenshotOverrides() {
+        #if DEBUG
+        let defaults = UserDefaults.standard
+        switch defaults.string(forKey: "screenshotTab") {
+        case "history": selectedTab = .history
+        case "bookmarks": selectedTab = .bookmarks
+        case "nearby": selectedTab = .nearby
+        default: break
+        }
+        if let article = defaults.string(forKey: "screenshotArticle") {
+            todayPath = [ArticleDestination(title: article, language: language)]
+        }
+        if defaults.bool(forKey: "screenshotSettings") {
+            showSettings = true
+        }
+        #endif
     }
 }
 
