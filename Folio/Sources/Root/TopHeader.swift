@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct TopHeader: View {
     @Binding var searchText: String
@@ -62,8 +63,15 @@ struct TopHeader: View {
 }
 
 private struct FolioLogo: View {
+    // The text frame ends a full descender below the baseline; claw that
+    // back so the rule sits just under the F, matching the app icon's mark.
+    private static let ruleSpacing: CGFloat = {
+        let descent = UIFont(name: "EBGaramond-BoldItalic", size: 22).map { -$0.descender } ?? 6.2
+        return 1.8 - descent
+    }()
+
     var body: some View {
-        VStack(alignment: .center, spacing: 2) {
+        VStack(alignment: .center, spacing: Self.ruleSpacing) {
             Text("F")
                 .font(.custom("EBGaramond-BoldItalic", size: 22, relativeTo: .title3))
                 .foregroundStyle(Color.accentColor)
