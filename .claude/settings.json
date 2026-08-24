@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-comment-length.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking comment length"
+          }
+        ]
+      }
+    ]
+  }
+}

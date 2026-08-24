@@ -33,3 +33,6 @@ Package.resolved
 
 # XcodeGen-generated plist
 Folio/GeneratedInfo.plist
+
+# Claude Code personal overrides
+.claude/settings.local.json
