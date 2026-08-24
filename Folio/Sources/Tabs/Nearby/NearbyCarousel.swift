@@ -42,10 +42,14 @@ private struct NearbyCard: View {
     let article: NearbyArticle
     let language: String
 
+    // The batch geosearch only carries thumbnails for its first 50 pages —
+    // cards beyond that fetch their own lazily (LazyHStack: visible ones only).
+    @State private var fetchedThumbnail: URL?
+
     var body: some View {
         NavigationLink(value: ArticleDestination(title: article.title, language: language)) {
             HStack(spacing: 12) {
-                AsyncImage(url: article.thumbnailURL) { phase in
+                RemoteImage(url: article.thumbnailURL ?? fetchedThumbnail) { phase in
                     switch phase {
                     case .success(let image): image.resizable().scaledToFill()
                     case .failure, .empty: Color(.tertiarySystemFill)
@@ -74,5 +78,11 @@ private struct NearbyCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
+        .task(id: article.id) {
+            guard article.thumbnailURL == nil, fetchedThumbnail == nil else { return }
+            fetchedThumbnail = (try? await WikipediaClient.shared.summary(title: article.title, language: language))?
+                .thumbnailURL?
+                .wikimediaResized(to: ThumbnailWidth.row)
+        }
     }
 }

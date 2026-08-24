@@ -81,7 +81,7 @@ actor WikipediaClient {
         longitude: Double,
         language: String,
         radiusMeters: Int = 10_000,
-        limit: Int = 50
+        limit: Int = 150
     ) async throws -> [NearbyArticle] {
         let response: NearbyResponse = try await get(
             .nearby(language: language, latitude: latitude, longitude: longitude, radiusMeters: radiusMeters, limit: limit)

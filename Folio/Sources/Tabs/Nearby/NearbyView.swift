@@ -58,7 +58,7 @@ struct NearbyView: View {
             cameraPosition = .region(
                 MKCoordinateRegion(
                     center: coord,
-                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+                    span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
                 )
             )
         }
@@ -126,18 +126,20 @@ struct NearbyView: View {
         cameraPosition = .region(
             MKCoordinateRegion(
                 center: coord,
-                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
             )
         )
     }
 
-    /// Inscribed-circle radius of the visible region in meters, clamped to Wikipedia's
-    /// 10 km gsradius ceiling.
+    /// Circumscribed-circle radius of the visible region in meters (half the
+    /// diagonal — geosearch works in circles, and the inscribed circle would
+    /// leave the viewport's corners markerless), clamped to Wikipedia's 10 km
+    /// gsradius ceiling.
     private func radiusMeters(for region: MKCoordinateRegion) -> Int {
         let latMeters = region.span.latitudeDelta * 111_000
         let lonMeters = region.span.longitudeDelta * 111_000 * cos(region.center.latitude * .pi / 180)
-        let inscribed = min(latMeters, lonMeters) / 2
-        return max(500, min(10_000, Int(inscribed)))
+        let circumscribed = (latMeters * latMeters + lonMeters * lonMeters).squareRoot() / 2
+        return max(500, min(10_000, Int(circumscribed)))
     }
 
     private func scheduleFetch(for region: MKCoordinateRegion) {
@@ -166,7 +168,12 @@ struct NearbyView: View {
                 radiusMeters: radius
             )
             if Task.isCancelled { return }
-            articles = fresh
+            // Distance-sorted so the carousel leads with what's actually
+            // closest — the API's page order is arbitrary.
+            articles = fresh.sorted {
+                distance(CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude), center)
+                    < distance(CLLocationCoordinate2D(latitude: $1.latitude, longitude: $1.longitude), center)
+            }
             selectedID = nil
             lastQueryCoord = center
             lastQueryRadius = radius
