@@ -288,7 +288,10 @@ private struct SearchResultsList: View {
         }
         .listStyle(.plain)
         .background(Color(.systemBackground))
-        .task(id: query) { scheduleSearch(query) }
+        // Results depend on query AND language: the EN/DE toggle must refetch,
+        // and stale other-language rows must not linger while it does.
+        .task(id: "\(language)|\(query)") { scheduleSearch(query) }
+        .onChange(of: language) { _, _ in results = [] }
     }
 
     /// Insert a SearchHistoryEntry for the current query, deduping against any

@@ -39,10 +39,22 @@ struct RemoteImage<Content: View>: View {
                     return
                 }
                 if loadedURL == url, case .success = phase { return }
-                if let image = await ImageLoader.shared.image(for: url, maxPixelSize: maxPixelSize) {
+                if let hit = ImageLoader.cached(url, maxPixelSize: maxPixelSize) {
+                    phase = .success(Image(uiImage: hit))
+                    loadedURL = url
+                    return
+                }
+                // Reset so a changed URL never keeps showing the old image.
+                phase = .empty
+                loadedURL = nil
+                let image = await ImageLoader.shared.image(for: url, maxPixelSize: maxPixelSize)
+                // A cancelled task belongs to a previous URL; its result,
+                // success or failure, must not land on the current one.
+                guard !Task.isCancelled else { return }
+                if let image {
                     phase = .success(Image(uiImage: image))
                     loadedURL = url
-                } else if !Task.isCancelled {
+                } else {
                     phase = .failure(URLError(.cannotLoadFromNetwork))
                 }
             }
