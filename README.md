@@ -41,6 +41,10 @@ open Folio.xcodeproj
 Change the development team to your own, then build and run. Targets iOS 18,
 iPhone first. Sideloads fine with a free Apple ID. That is how I run it.
 
+If you plan to commit, enable the repo's hooks once with
+`git config core.hooksPath .githooks`. They run [gitleaks](https://github.com/gitleaks/gitleaks)
+over staged changes, commit messages, and outgoing pushes.
+
 ## Status
 
 Alpha. I use it daily and fix whatever annoys me, roughly in that order.
