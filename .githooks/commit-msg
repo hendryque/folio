@@ -1,0 +1,64 @@
+#!/bin/sh
+# Secret guard: scan the commit MESSAGE (file scans never see it) + style.
+# Deliberate bypass: SKIP_SECRET_CHECK=1 git commit ...
+# Machine-local additions: .githooks/banned.local (ERE per line, untracked).
+[ "$SKIP_SECRET_CHECK" = "1" ] && exit 0
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo "commit-msg: gitleaks not on PATH — refusing to commit (fail closed)" >&2
+    exit 1
+fi
+
+top=$(git rev-parse --show-toplevel)
+conf="$top/.gitleaks.local.toml"
+[ -f "$conf" ] || conf="$top/.gitleaks.toml"
+msg=$(grep -v '^#' "$1")
+
+if ! printf '%s\n' "$msg" | gitleaks stdin --redact -c "$conf" >/dev/null 2>&1; then
+    echo "commit-msg: secret pattern in commit message" >&2
+    exit 1
+fi
+
+subject=$(printf '%s\n' "$msg" | sed -n '1p')
+if [ ${#subject} -gt 72 ]; then
+    echo "commit-msg: subject longer than 72 chars" >&2
+    exit 1
+fi
+case "$subject" in
+    *.) echo "commit-msg: subject ends with a period" >&2; exit 1 ;;
+esac
+
+lines=$(printf '%s\n' "$msg" | grep -c '')
+if [ "$lines" -gt 15 ]; then
+    echo "commit-msg: message longer than 15 lines" >&2
+    exit 1
+fi
+
+if [ "$lines" -gt 1 ] && [ -n "$(printf '%s\n' "$msg" | sed -n '2p')" ]; then
+    echo "commit-msg: second line must be blank (subject / body separator)" >&2
+    exit 1
+fi
+
+# body wrapped at 72 (lines carrying a URL are exempt)
+if printf '%s\n' "$msg" | sed '1d' | grep -v '://' | grep -qE '.{73}'; then
+    echo "commit-msg: body line longer than 72 chars" >&2
+    exit 1
+fi
+
+# classic stylebook, not prose essays: no markdown, no emoji, no filler openers
+if printf '%s\n' "$msg" | grep -qE '\*\*|^#{1,6} |^(This (commit|change|PR)|In this commit)\b'; then
+    echo "commit-msg: markdown formatting / essay opener — write plain classic style" >&2
+    exit 1
+fi
+if printf '%s\n' "$msg" | LC_ALL=C grep -q "$(printf '\360\237')"; then
+    echo "commit-msg: no emoji in commit messages" >&2
+    exit 1
+fi
+
+if [ -s "$top/.githooks/banned.local" ] \
+    && printf '%s\n' "$msg" | grep -qiEf "$top/.githooks/banned.local"; then
+    echo "commit-msg: message matches a banned.local pattern" >&2
+    exit 1
+fi
+
+exit 0

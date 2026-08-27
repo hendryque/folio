@@ -1,0 +1,31 @@
+#!/bin/sh
+# Secret guard: gitleaks over the staged diff + path blocklist.
+# Deliberate bypass: SKIP_SECRET_CHECK=1 git commit ...
+# Machine-local additions: .githooks/blocked.local (ERE per line, untracked).
+[ "$SKIP_SECRET_CHECK" = "1" ] && exit 0
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo "pre-commit: gitleaks not on PATH — refusing to commit (fail closed)" >&2
+    exit 1
+fi
+
+top=$(git rev-parse --show-toplevel)
+conf="$top/.gitleaks.local.toml"
+[ -f "$conf" ] || conf="$top/.gitleaks.toml"
+
+# Never-tracked paths (catches git add -f). Local policy files protect themselves.
+BLOCKED='((^|/)\.env|(^|/)\.env\.local|\.har|\.p12|\.pem|\.mobileprovision|(^|/)\.gitleaks\.local\.toml|(^|/)\.githooks/[^/]*\.local)$'
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+bad=$(printf '%s\n' "$staged" | grep -E "$BLOCKED")
+if [ -s "$top/.githooks/blocked.local" ]; then
+    bad="$bad
+$(printf '%s\n' "$staged" | grep -Ef "$top/.githooks/blocked.local")"
+fi
+bad=$(printf '%s\n' "$bad" | grep -v '^$')
+if [ -n "$bad" ]; then
+    echo "pre-commit: blocked path(s) staged:" >&2
+    printf '%s\n' "$bad" | sed 's/^/  /' >&2
+    exit 1
+fi
+
+exec gitleaks git --staged --redact -c "$conf"

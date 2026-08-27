@@ -1,0 +1,6 @@
+# Secret guard config: gitleaks default ruleset.
+# Machine-local rules and allowlists go in .gitleaks.local.toml (untracked,
+# never committed); the hooks prefer it when present.
+
+[extend]
+useDefault = true

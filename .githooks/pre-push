@@ -1,0 +1,30 @@
+#!/bin/sh
+# Secret guard: gitleaks over the exact outgoing range.
+# Deliberate bypass: SKIP_SECRET_CHECK=1 git push ...
+[ "$SKIP_SECRET_CHECK" = "1" ] && exit 0
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo "pre-push: gitleaks not on PATH — refusing to push (fail closed)" >&2
+    exit 1
+fi
+
+top=$(git rev-parse --show-toplevel)
+conf="$top/.gitleaks.local.toml"
+[ -f "$conf" ] || conf="$top/.gitleaks.toml"
+zero=0000000000000000000000000000000000000000
+status=0
+
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+    [ "$local_sha" = "$zero" ] && continue  # ref deletion, nothing outgoing
+    if [ "$remote_sha" = "$zero" ]; then
+        range="$local_sha --not --remotes"  # new branch: only commits the remote lacks
+    else
+        range="$remote_sha..$local_sha"
+    fi
+    if ! gitleaks git --redact -c "$conf" --log-opts="$range"; then
+        echo "pre-push: leaks in outgoing range $range" >&2
+        status=1
+    fi
+done
+
+exit $status

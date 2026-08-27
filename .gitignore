@@ -36,3 +36,7 @@ Folio/GeneratedInfo.plist
 
 # Claude Code
 .claude/
+
+# Secret guard — machine-local policy stays local
+.gitleaks.local.toml
+.githooks/*.local
