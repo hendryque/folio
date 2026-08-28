@@ -51,15 +51,20 @@ struct ArticleLoadingPreview: View {
                             .padding(.top, 28)
                     }
 
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
-                        Text("Loading article…")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                    // Only surfaces on a genuinely slow load. Showing it
+                    // immediately made every fast open flicker as it vanished.
+                    if showSlowIndicator {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            Text("Loading article…")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 18)
+                        .padding(.bottom, 32)
+                        .transition(.opacity)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 18)
-                    .padding(.bottom, 32)
                 }
                 // article.css caps the 26rem text measure, then adds 20px
                 // padding on either side. Match that outer width on tablets.
@@ -69,7 +74,13 @@ struct ArticleLoadingPreview: View {
             .scrollDisabled(true)
         }
         .background(backgroundColor)
+        .task {
+            try? await Task.sleep(for: .milliseconds(1200))
+            withAnimation(.easeIn(duration: 0.2)) { showSlowIndicator = true }
+        }
     }
+
+    @State private var showSlowIndicator = false
 
     private var readerMaxOuterWidth: CGFloat { CGFloat(26 * 17 * fontScale + 40) }
 
@@ -94,13 +105,14 @@ struct ArticleLoadingPreview: View {
         return max(0, size * 1.52 - natural)
     }
 
-    /// The article body opens with the subject in bold — mirror it so the
-    /// swap to the WebView doesn't restyle the opening words.
+    /// The rendered article opens with the subject in bold. Take that span
+    /// from the summary's own `extract_html` rather than guessing from the
+    /// title, which misses every article whose lead differs from its name.
     private var styledExtract: AttributedString {
         var attributed = AttributedString(summary.extract ?? "")
-        if let range = attributed.range(of: displayTitle), range.lowerBound == attributed.startIndex {
-            attributed[range].font = .custom("EBGaramond-Bold", size: 17 * fontScale, relativeTo: .body)
-        }
+        guard let lead = summary.leadBoldPhrase,
+              let range = attributed.range(of: lead) else { return attributed }
+        attributed[range].font = .custom("EBGaramond-Bold", size: 17 * fontScale, relativeTo: .body)
         return attributed
     }
 

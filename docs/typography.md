@@ -147,3 +147,28 @@ portraits. The fix is to sample mean luminance of the bottom half of the
 decoded image, which `ImageLoader` already holds, and modulate peak alpha
 between roughly 0.45 and 0.90. Deferred until the darkening actually annoys
 in daily use.
+
+## App icon: open question on the rule
+
+Measured on the shipped 1024px icon. The letter's foot, where it meets the
+ground, runs x 206-498, centre 352. The rule runs 240-783, centre 511. So the
+rule's centre sits 159px right of where the letter touches down, overhangs the
+foot by 285px on the right, and does not overhang on the left at all: the foot
+pokes 34px past the rule's left end.
+
+The cause is that the rule was centred on the glyph's full inked bounding box,
+and for an italic F that box is dominated by the top arm reaching right. The
+bounding box is a poor proxy for where the letter's weight sits.
+
+The icon and the header wordmark agree on rule width (86% of inked width
+against the header's 92%) but disagree sharply on the gap: the header sits
+1.8pt under a 14.3pt cap, a gap-to-cap ratio of 0.126, while the icon is 27px
+under a 594px cap, ratio 0.045. The icon's gap is 2.8x tighter, from
+overshooting an earlier correction.
+
+Proposal, not yet applied: pull the rule back to the foot (172-532, centred on
+352), then optically recentre the whole group roughly 40-60px right, and open
+the gap to 45-55px. At 120px this reads as one mark rather than a letter with
+a separate horizontal beneath it. The argument against is that a shorter rule
+is a weaker horizontal at Settings size. Specimens are in
+`~/Desktop/folio-icon-proofs` as `var-strip-120.png` and `var-A/B/C`.

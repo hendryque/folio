@@ -16,6 +16,27 @@ struct ArticleSummary: Decodable, Identifiable, Hashable, Sendable {
     var originalImageURL: URL? { originalImage?.source }
     var pageURL: URL? { contentURLs?.mobile?.page ?? contentURLs?.desktop?.page }
 
+    /// The subject phrase Wikipedia sets bold at the start of the lead, read
+    /// from `extract_html`. The preview mirrors it so swapping in the real
+    /// article does not restyle the opening words.
+    var leadBoldPhrase: String? {
+        guard let html = extractHTML,
+              let open = html.range(of: "<b>"),
+              let close = html.range(of: "</b>", range: open.upperBound..<html.endIndex)
+        else { return nil }
+        let inner = String(html[open.upperBound..<close.lowerBound])
+        let plain = inner.replacingOccurrences(
+            of: "<[^>]+>", with: "", options: .regularExpression
+        )
+        let decoded = plain
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&nbsp;", with: "\u{00A0}")
+        let trimmed = decoded.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
     enum CodingKeys: String, CodingKey {
         case title
         case displayTitle = "displaytitle"

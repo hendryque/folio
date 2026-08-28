@@ -79,6 +79,7 @@ struct ArticleWebView: UIViewRepresentable {
         controller.add(context.coordinator, name: "fontScale")
         controller.add(context.coordinator, name: "scroll")
         controller.add(context.coordinator, name: "activeSection")
+        controller.add(context.coordinator, name: "painted")
         configuration.userContentController = controller
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
@@ -118,6 +119,7 @@ struct ArticleWebView: UIViewRepresentable {
 
         if context.coordinator.lastHash != stableHash {
             context.coordinator.lastHash = stableHash
+            context.coordinator.hasPainted = false
             let composed = ArticleHTML.render(
                 rawHTML: html,
                 theme: theme,
@@ -152,7 +154,7 @@ struct ArticleWebView: UIViewRepresentable {
     }
 
     private static let userScriptSources: [String] = {
-        ["lazy", "toc", "footnotes", "images", "pinch", "scroll", "section"].compactMap { name in
+        ["lazy", "toc", "footnotes", "images", "pinch", "scroll", "section", "painted"].compactMap { name in
             guard let url = Bundle.main.url(forResource: name, withExtension: "js") else { return nil }
             return try? String(contentsOf: url, encoding: .utf8)
         }
@@ -172,6 +174,7 @@ struct ArticleWebView: UIViewRepresentable {
         var onReload: () -> Void
 
         var lastHash: Int = 0
+        var hasPainted = false
         weak var webView: WKWebView?
 
         private static let nonArticleNamespaces: Set<String> = [
@@ -252,9 +255,18 @@ struct ArticleWebView: UIViewRepresentable {
                 let raw = dict["id"] as? String ?? ""
                 onActiveSection(raw.isEmpty ? nil : raw)
 
+            case "painted":
+                markPainted()
             default:
                 break
             }
+        }
+
+        /// Reveal once per load, from whichever signal arrives first.
+        private func markPainted() {
+            guard !hasPainted else { return }
+            hasPainted = true
+            onReady()
         }
 
         /// If iOS reaps our content process (memory pressure, jetsam, etc.)
@@ -267,7 +279,8 @@ struct ArticleWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            onReady()
+            // Fallback only: `painted` normally reveals us ~500ms earlier.
+            markPainted()
             guard initialScrollY > 0 else { return }
             let y = initialScrollY
             initialScrollY = 0  // restore only once per load
