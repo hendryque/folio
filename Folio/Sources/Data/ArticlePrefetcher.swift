@@ -22,7 +22,8 @@ enum ArticlePrefetcher {
         let title = article.title
         if let cached = CachedArticle.fetch(title: title, language: language, in: context), cached.isFresh {
             // HTML is current; just backfill focal/hero if an older row lacks them.
-            if cached.focalPoint == nil, let focal = await detectFocal(article) {
+            if cached.focalPoint == nil,
+               let focal = await FocalPointDetector.shared.resolvedFocalPoint(for: article) {
                 cached.focalPointX = focal.x
                 cached.focalPointY = focal.y
             }
@@ -36,7 +37,7 @@ enum ArticlePrefetcher {
         guard let html = try? await WikipediaClient.shared.mobileHTML(title: title, language: language) else {
             return
         }
-        let focal = await detectFocal(article)
+        let focal = await FocalPointDetector.shared.resolvedFocalPoint(for: article)
         CachedArticle.upsert(
             title: title,
             language: language,
@@ -47,11 +48,4 @@ enum ArticlePrefetcher {
         )
     }
 
-    /// Focal coordinates are normalized, so the tile-sized rendition — which
-    /// the Today grid has already downloaded and decoded — detects the same
-    /// faces the full hero would. No extra bytes over the wire.
-    private static func detectFocal(_ article: ArticleSummary) async -> CGPoint? {
-        guard let url = article.imageURL(width: ThumbnailWidth.tile) else { return nil }
-        return await FocalPointDetector.shared.focalPoint(for: url) ?? FocalPointDetector.defaultCrop
-    }
 }

@@ -1,5 +1,5 @@
 (function() {
-    const MIN = 0.85, MAX = 1.6;
+    const MIN = 0.85, MAX = 1.6, TITLE_MAX = 1.2;
     const root = document.documentElement;
 
     function readScale() {
@@ -9,6 +9,7 @@
     function setScale(v) {
         const clamped = Math.max(MIN, Math.min(MAX, v));
         root.style.setProperty('--folio-font-scale', clamped.toFixed(3));
+        root.style.setProperty('--folio-title-scale', Math.min(TITLE_MAX, clamped).toFixed(3));
         return clamped;
     }
 

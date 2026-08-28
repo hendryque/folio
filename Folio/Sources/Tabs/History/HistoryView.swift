@@ -27,6 +27,21 @@ struct HistoryView: View {
                 .listStyle(.plain)
             }
         }
+        .task { collapseDuplicates() }
+    }
+
+    /// Earlier builds stored one row per visit. Collapse the leftovers so each
+    /// article and query appears once, at its most recent time.
+    private func collapseDuplicates() {
+        var seenArticles = Set<String>()
+        for entry in articleHistory where !seenArticles.insert("\(entry.language)|\(entry.title)").inserted {
+            modelContext.delete(entry)
+        }
+        var seenSearches = Set<String>()
+        for entry in searchHistory where !seenSearches.insert("\(entry.language)|\(entry.query)").inserted {
+            modelContext.delete(entry)
+        }
+        try? modelContext.save()
     }
 
     /// Article visits and search queries interleaved by timestamp, newest first.

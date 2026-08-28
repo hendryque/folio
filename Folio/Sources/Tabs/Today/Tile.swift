@@ -17,32 +17,8 @@ struct Tile: View {
 
     private var tint: Color { Self.tintColors[tintIndex % Self.tintColors.count] }
 
-    @State private var focalPoint: CGPoint?
-
     private var imageURL: URL? {
         article.imageURL(width: ThumbnailWidth.tile)
-    }
-
-    /// Maps the normalized focal point (top-left origin) to one of SwiftUI's nine
-    /// fixed Alignment values. Vision delivers a true CGPoint; SwiftUI's frame
-    /// alignment is discrete, so we bucket. Articles without detected faces use
-    /// `.top` (faces almost always live above the equator).
-    private var imageAlignment: Alignment {
-        guard let f = focalPoint else { return .top }
-        let xq: Int = f.x < 0.34 ? -1 : (f.x > 0.66 ? 1 : 0)
-        let yq: Int = f.y < 0.34 ? -1 : (f.y > 0.66 ? 1 : 0)
-        switch (xq, yq) {
-        case (-1, -1): return .topLeading
-        case ( 0, -1): return .top
-        case ( 1, -1): return .topTrailing
-        case (-1,  0): return .leading
-        case ( 0,  0): return .center
-        case ( 1,  0): return .trailing
-        case (-1,  1): return .bottomLeading
-        case ( 0,  1): return .bottom
-        case ( 1,  1): return .bottomTrailing
-        default: return .top
-        }
     }
 
     var body: some View {
@@ -60,30 +36,54 @@ struct Tile: View {
                         Color.clear
                     }
                 }
-                .frame(width: geo.size.width, height: height, alignment: imageAlignment)
+                // Today is a scanning surface: keep the first crop stable rather
+                // than visibly repositioning a tile after Vision finishes.
+                .frame(width: geo.size.width, height: height, alignment: .top)
                 .clipped()
 
-                tint.opacity(0.42)
+                // A flat tint darkens the whole tile uniformly, which leaves
+                // white text unreadable over pale images. Put the darkness
+                // where the text actually sits instead.
+                tint.opacity(0.15)
                     .frame(width: geo.size.width, height: height)
 
-                VStack(alignment: .leading, spacing: 8) {
+                // A 3-line title reaches 53% of the tile, so the scrim has to
+                // stay substantial that high: over a bright poster the old
+                // ramp left the title at 1.5:1 contrast.
+                LinearGradient(
+                    stops: [
+                        .init(color: .black.opacity(0.88), location: 0.0),
+                        .init(color: .black.opacity(0.72), location: 0.32),
+                        .init(color: .black.opacity(0.40), location: 0.60),
+                        .init(color: .clear, location: 0.88)
+                    ],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+                .frame(width: geo.size.width, height: height)
+                .allowsHitTesting(false)
+
+                VStack(alignment: .leading, spacing: 6) {
                     Text(article.title.replacingOccurrences(of: "_", with: " "))
-                        .font(.custom("EBGaramond-Italic", size: 22, relativeTo: .title3))
+                        .font(.custom("EBGaramond-MediumItalic", size: 22, relativeTo: .title3))
                         .foregroundStyle(.white)
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let desc = article.description, !desc.isEmpty {
-                        Text(desc.uppercased())
-                            .font(.system(size: 10, weight: .semibold))
-                            .tracking(1.3)
-                            .foregroundStyle(.white.opacity(0.92))
-                            .lineLimit(3)
+                        // Sentence case keeps the word shape readable at a
+                        // glance; tracked caps forced letter-by-letter reading
+                        // and ran to three lines on German descriptions.
+                        Text(desc)
+                            .font(.custom("EBGaramond-Medium", size: 13, relativeTo: .caption))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .lineLimit(2)
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                .shadow(color: .black.opacity(0.5), radius: 5, y: 1)
                 .padding(14)
                 .frame(width: geo.size.width, alignment: .leading)
             }
@@ -91,9 +91,5 @@ struct Tile: View {
             .clipped()
         }
         .aspectRatio(3.0 / 4.0, contentMode: .fit)
-        .task(id: imageURL) {
-            guard let url = imageURL else { return }
-            focalPoint = await FocalPointDetector.shared.focalPoint(for: url)
-        }
     }
 }

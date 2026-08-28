@@ -45,8 +45,10 @@ targets:
         NSLocationWhenInUseUsageDescription: "Folio queries Wikipedia's geosearch endpoint to find articles near you. Your location is not sent or saved anywhere else."
         UIAppFonts:
           - EBGaramond-Regular.otf
+          - EBGaramond-Medium.otf
           - EBGaramond-Italic.otf
           - EBGaramond-Bold.otf
+          - EBGaramond-MediumItalic.otf
           - EBGaramond-BoldItalic.otf
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: NO

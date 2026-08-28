@@ -294,21 +294,25 @@ private struct SearchResultsList: View {
         .onChange(of: language) { _, _ in results = [] }
     }
 
-    /// Insert a SearchHistoryEntry for the current query, deduping against any
-    /// identical query+language entry saved in the last 60s so a tap-back-tap
-    /// flurry doesn't fill history with the same word repeated.
+    /// Record the query, one row per query+language: repeating a search bumps
+    /// the existing row instead of filling history with the same word.
     private func persistSearchQuery() {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         let lang = language
-        let cutoff = Date.now.addingTimeInterval(-60)
         let descriptor = FetchDescriptor<SearchHistoryEntry>(
             predicate: #Predicate { entry in
-                entry.query == trimmed && entry.language == lang && entry.searchedAt > cutoff
-            }
+                entry.query == trimmed && entry.language == lang
+            },
+            sortBy: [SortDescriptor(\.searchedAt, order: .reverse)]
         )
-        if let existing = try? modelContext.fetch(descriptor), !existing.isEmpty { return }
-        modelContext.insert(SearchHistoryEntry(query: trimmed, language: lang))
+        let existing = (try? modelContext.fetch(descriptor)) ?? []
+        if let newest = existing.first {
+            newest.searchedAt = .now
+            for stale in existing.dropFirst() { modelContext.delete(stale) }
+        } else {
+            modelContext.insert(SearchHistoryEntry(query: trimmed, language: lang))
+        }
         try? modelContext.save()
     }
 

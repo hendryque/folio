@@ -130,9 +130,11 @@ struct ArticleWebView: UIViewRepresentable {
             webView.loadHTMLString(composed, baseURL: baseURL)
         } else {
             // Same document — flip theme + scale via JS, no reload, no flash.
+            let titleScale = min(max(fontScale, 0.85), 1.2)
             let js = """
             document.body && document.body.setAttribute('data-theme', '\(theme.cssDataTheme)');
             document.documentElement && document.documentElement.style.setProperty('--folio-font-scale', '\(fontScale)');
+            document.documentElement && document.documentElement.style.setProperty('--folio-title-scale', '\(titleScale)');
             """
             webView.evaluateJavaScript(js)
         }

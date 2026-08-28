@@ -16,11 +16,24 @@ actor FocalPointDetector {
     static let defaultCrop = CGPoint(x: 0.5, y: 0.28)
 
     private var cache: [URL: CGPoint?] = [:]
+    private var inFlight: [URL: Task<CGPoint?, Never>] = [:]
+
+    /// Resolves the crop used by article heroes from the tile-sized rendition.
+    /// Normalized face coordinates do not benefit from downloading the 1280px
+    /// hero, and Today has usually warmed this URL already.
+    func resolvedFocalPoint(for article: ArticleSummary) async -> CGPoint? {
+        guard let url = article.imageURL(width: ThumbnailWidth.tile) else { return nil }
+        return await focalPoint(for: url) ?? Self.defaultCrop
+    }
 
     func focalPoint(for url: URL) async -> CGPoint? {
         if let cached = cache[url] { return cached }
+        if let running = inFlight[url] { return await running.value }
 
-        let result = await compute(for: url)
+        let task = Task { await compute(for: url) }
+        inFlight[url] = task
+        let result = await task.value
+        inFlight[url] = nil
         cache[url] = result
         return result
     }

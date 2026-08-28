@@ -25,62 +25,73 @@ struct ArticleLoadingPreview: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                // Same sized URL the WebView hero uses, so the preview and the
-                // article share one download and one cache entry.
-                if let url = summary.imageURL(width: ThumbnailWidth.hero) {
-                    hero(url: url)
-                } else {
-                    Text(displayTitle)
-                        .font(.custom("EBGaramond-Italic", size: titleSize, relativeTo: .largeTitle))
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                        .padding(.bottom, 16)
-                }
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Same sized URL the WebView hero uses, so the preview and the
+                    // article share one download and one cache entry.
+                    if let url = summary.imageURL(width: ThumbnailWidth.hero) {
+                        hero(url: url)
+                    } else {
+                        Text(displayTitle)
+                            .font(.custom("EBGaramond-Italic", size: textOnlyTitleSize, relativeTo: .largeTitle))
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 20)
+                            .padding(.bottom, 16)
+                    }
 
-                if summary.extract != nil {
-                    Text(styledExtract)
-                        .font(.custom("EBGaramond-Regular", size: 17 * fontScale, relativeTo: .body))
-                        .foregroundStyle(.primary)
-                        .lineSpacing(extractLineSpacing)
-                        .padding(.horizontal, 20)
-                        // article.css: .folio-header's 28px bottom margin.
-                        .padding(.top, 28)
-                }
+                    if summary.extract != nil {
+                        Text(styledExtract)
+                            .font(.custom("EBGaramond-Regular", size: 17 * fontScale, relativeTo: .body))
+                            .foregroundStyle(.primary)
+                            .lineSpacing(extractLineSpacing)
+                            .padding(.horizontal, 20)
+                            // article.css: .folio-header's 28px bottom margin.
+                            .padding(.top, 28)
+                    }
 
-                HStack(spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text("Loading article…")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("Loading article…")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 18)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
-                .padding(.bottom, 32)
+                // article.css caps the 26rem text measure, then adds 20px
+                // padding on either side. Match that outer width on tablets.
+                .frame(width: min(geometry.size.width, readerMaxOuterWidth), alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .scrollDisabled(true)
         }
-        .scrollDisabled(true)
         .background(backgroundColor)
     }
+
+    private var readerMaxOuterWidth: CGFloat { CGFloat(26 * 17 * fontScale + 40) }
 
     private var displayTitle: String {
         summary.title.replacingOccurrences(of: "_", with: " ")
     }
 
-    /// article.css: .folio-title is 2.6em of the 17px body.
-    private var titleSize: Double { 44.2 * fontScale }
+    /// Keep preview title sizes identical to article.css. Display scaling
+    /// follows the reader setting only to 120%, while body text keeps the
+    /// full configured scale range.
+    private var titleScale: Double { min(max(fontScale, 0.85), 1.2) }
+    private var heroTitleSize: Double { 44.2 * titleScale }
+    private var textOnlyTitleSize: Double { 40.8 * titleScale }
 
-    /// article.css body: 17px at line-height 1.62. SwiftUI's lineSpacing is
+    /// article.css body: 17px at line-height 1.52. SwiftUI's lineSpacing is
     /// *extra* points on top of the font's natural leading — subtract it, or
     /// the preview text sits visibly tighter than the rendered article and
     /// the cross-fade reads as a jump.
     private var extractLineSpacing: Double {
         let size = 17 * fontScale
         let natural = UIFont(name: "EBGaramond-Regular", size: size)?.lineHeight ?? size * 1.2
-        return max(0, size * 1.62 - natural)
+        return max(0, size * 1.52 - natural)
     }
 
     /// The article body opens with the subject in bold — mirror it so the
@@ -132,7 +143,7 @@ struct ArticleLoadingPreview: View {
                 .allowsHitTesting(false)
 
                 Text(displayTitle)
-                    .font(.custom("EBGaramond-Italic", size: titleSize, relativeTo: .largeTitle))
+                    .font(.custom("EBGaramond-Italic", size: heroTitleSize, relativeTo: .largeTitle))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.45), radius: 12, y: 1)
                     .padding(.horizontal, 20)

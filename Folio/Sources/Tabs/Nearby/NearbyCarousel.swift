@@ -61,7 +61,7 @@ private struct NearbyCard: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(article.title.replacingOccurrences(of: "_", with: " "))
-                        .font(.custom("EBGaramond-Regular", size: 16, relativeTo: .body))
+                        .font(.custom("EBGaramond-Medium", size: 16, relativeTo: .body))
                         .foregroundStyle(.primary)
                         .lineLimit(2)
                     if let desc = article.description, !desc.isEmpty {

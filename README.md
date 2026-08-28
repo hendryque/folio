@@ -15,10 +15,12 @@ personal recreation of the parts I used every day. It is an homage, not a replac
 
 ## What it does
 
-- Today: Wikipedia's featured article, most-read, and news as a photo grid
-- Reader: EB Garamond, generous leading, hero images with face-aware cropping
-  (Vision, on-device), light/sepia/dark themes, pinch to change text size,
-  table of contents, image gallery
+- Today: Wikipedia's featured article, most-read, and news as a photo grid with
+  stable crops that do not reposition after appearing
+- Reader: EB Garamond at a capped reading measure, locale-aware typography and
+  hyphenation, on-device face-aware hero crops, light/sepia/dark themes, pinch
+  to change text size, table of contents, and image gallery. A lead image
+  promoted to the hero is not repeated in the article body.
 - Nearby: Wikipedia articles around you, on a map
 - Search, bookmarks, and reading history, stored locally with SwiftData
 - English and German Wikipedia, toggled from the header
@@ -27,6 +29,15 @@ personal recreation of the parts I used every day. It is an homage, not a replac
 There is no backend, no analytics, and no accounts. The app talks directly to
 Wikipedia's public APIs and nothing else. Nearby sends your coordinates to
 Wikipedia's geosearch endpoint and nowhere further.
+
+## Typography
+
+The settings follow the reading mode. Today and Nearby are scanning surfaces,
+so article titles use EB Garamond Medium roman. The reader defaults to 17/25
+with a 31rem maximum measure; its display title scales independently and stops
+at 120%, while body text retains the full setting range. Folio restores each
+article's document language before layout and applies locale-aware punctuation,
+so English and German hyphenation and quotation conventions remain distinct.
 
 ## Building
 
@@ -58,6 +69,8 @@ opened. Issues and pull requests are welcome. I can't promise a roadmap.
   design Folio chases. Folio is not affiliated with Raureif.
 - [Typographizer](https://github.com/frankrausch/Typographizer) by Frank
   Rausch, vendored under its MIT license.
+- [EB Garamond](https://github.com/octaviopardo/EBGaramond12) by Georg Duffner
+  and Octavio Pardo, bundled under the SIL Open Font License 1.1.
 - All content comes from [Wikipedia](https://www.wikipedia.org) via the
   Wikimedia APIs and is licensed CC BY-SA. Folio is not affiliated with the
   Wikimedia Foundation.

@@ -22,14 +22,18 @@ enum ArticleHTML {
 
         // Pull the body content out; if we can't, fall back to the whole document
         let body = extractBody(from: html) ?? html
+        let deduplicatedBody = removeDuplicateHeroFigure(from: body, heroImageURL: heroImageURL)
 
         let css = loadCSS()
         let themeName = theme.cssDataTheme
         let scale = String(format: "%.3f", fontScale)
+        // Display titles should respond to the reader setting without growing
+        // so far that long titles overflow the fixed 4:3 hero.
+        let titleScale = String(format: "%.3f", min(max(fontScale, 0.85), 1.2))
 
         // First <p> still gets folio-lead in case we want to style it later;
         // drop cap is no longer applied (matches V for Wikipedia).
-        let leadedBody = injectLeadClass(body)
+        let leadedBody = injectLeadClass(deduplicatedBody)
 
         // Run text nodes through Typographizer for curly quotes + en-dashes
         let typographedBody = leadedBody.typographized(language: language, isHTML: true)
@@ -38,7 +42,7 @@ enum ArticleHTML {
 
         return """
         <!DOCTYPE html>
-        <html style="--folio-font-scale: \(scale);">
+        <html lang="\(htmlEscape(language))" style="--folio-font-scale: \(scale); --folio-title-scale: \(titleScale);">
         <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -118,6 +122,78 @@ enum ArticleHTML {
             let closeRange = html.range(of: "</body>", options: .caseInsensitive)
         else { return nil }
         return String(html[openRange.upperBound..<closeRange.lowerBound])
+    }
+
+    /// Folio promotes the summary image into its own hero. Wikipedia often
+    /// repeats that same file as a lead figure after the opening paragraph;
+    /// leaving it in place renders one editorial image twice in succession.
+    /// Compare file identities rather than full URLs because the feed and
+    /// mobile HTML request different thumbnail widths and CDN hosts.
+    private static func removeDuplicateHeroFigure(from body: String, heroImageURL: URL?) -> String {
+        guard
+            let heroImageURL,
+            let heroFileName = wikimediaFileName(in: heroImageURL.absoluteString),
+            let figureRegex = try? NSRegularExpression(
+                pattern: "<figure\\b[^>]*>[\\s\\S]*?</figure>",
+                options: .caseInsensitive
+            ),
+            let attributeRegex = try? NSRegularExpression(
+                pattern: #"(?:href|(?:data-)*src|(?:data-)*resource)\s*=\s*["']([^"']+)["']"#,
+                options: .caseInsensitive
+            )
+        else { return body }
+
+        let nsBody = body as NSString
+        let bodyRange = NSRange(location: 0, length: nsBody.length)
+        for figureMatch in figureRegex.matches(in: body, options: [], range: bodyRange) {
+            let figure = nsBody.substring(with: figureMatch.range)
+            let nsFigure = figure as NSString
+            let figureRange = NSRange(location: 0, length: nsFigure.length)
+            let containsHero = attributeRegex.matches(in: figure, options: [], range: figureRange).contains { match in
+                guard match.numberOfRanges > 1 else { return false }
+                let reference = nsFigure.substring(with: match.range(at: 1))
+                return wikimediaFileName(in: reference) == heroFileName
+            }
+            guard containsHero else { continue }
+            return nsBody.replacingCharacters(in: figureMatch.range, with: "")
+        }
+        return body
+    }
+
+    /// Returns the original Wikimedia filename from originals, resized thumb
+    /// URLs, and Parsoid references such as `./Datei:Example.jpg`.
+    private static func wikimediaFileName(in reference: String) -> String? {
+        let unescaped = reference
+            .replacingOccurrences(of: "&amp;", with: "&", options: .caseInsensitive)
+            .replacingOccurrences(of: "&quot;", with: "\"", options: .caseInsensitive)
+            .replacingOccurrences(of: "&#39;", with: "'", options: .caseInsensitive)
+            .replacingOccurrences(of: "&#x27;", with: "'", options: .caseInsensitive)
+        // Remove URL structure before percent-decoding so a legitimate `%3F`
+        // or `%23` inside a filename is not mistaken for query/fragment syntax.
+        let withoutFragment = unescaped.split(separator: "#", maxSplits: 1).first.map(String.init) ?? unescaped
+        let withoutQuery = withoutFragment.split(separator: "?", maxSplits: 1).first.map(String.init) ?? withoutFragment
+        let decoded = withoutQuery.removingPercentEncoding ?? withoutQuery
+
+        if let namespaceRange = decoded.range(
+            of: #"(?:^|/)(?:File|Datei):"#,
+            options: [.caseInsensitive, .regularExpression]
+        ) {
+            return normalizedFileName(String(decoded[namespaceRange.upperBound...]))
+        }
+
+        let components = decoded.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+        if let thumbIndex = components.firstIndex(where: { $0.caseInsensitiveCompare("thumb") == .orderedSame }),
+           components.indices.contains(thumbIndex + 3) {
+            return normalizedFileName(components[thumbIndex + 3])
+        }
+        guard let last = components.last else { return nil }
+        return normalizedFileName(last)
+    }
+
+    private static func normalizedFileName(_ fileName: String) -> String {
+        fileName
+            .replacingOccurrences(of: " ", with: "_")
+            .precomposedStringWithCanonicalMapping
     }
 
     /// mobile-html starts the body with a description `<p>` and an empty `<p class="mw-empty-elt">`,

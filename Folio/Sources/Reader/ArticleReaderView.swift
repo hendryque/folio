@@ -118,7 +118,7 @@ struct ArticleReaderView: View {
 
     private var contentPhase: ContentPhase {
         if webViewReady { return .web }
-        if summary != nil { return .preview }
+        if summary != nil, visionComplete { return .preview }
         return .loading
     }
 
@@ -173,7 +173,7 @@ struct ArticleReaderView: View {
                         description: Text(loadError)
                     )
                     .transition(.opacity)
-                } else if let summary {
+                } else if let summary, visionComplete {
                     ArticleLoadingPreview(
                         summary: summary,
                         theme: theme,
@@ -314,8 +314,9 @@ struct ArticleReaderView: View {
             return
         }
 
-        guard let url = summary?.imageURL(width: ThumbnailWidth.hero) else { return }
-        let focal = await FocalPointDetector.shared.focalPoint(for: url) ?? FocalPointDetector.defaultCrop
+        guard let summary,
+              let focal = await FocalPointDetector.shared.resolvedFocalPoint(for: summary)
+        else { return }
         heroFocalPoint = focal
         persistFocalPoint(focal)
     }
@@ -446,28 +447,27 @@ struct ArticleReaderView: View {
         guard !historyRecorded else { return }
         historyRecorded = true
 
-        // Cross-instance dedup: if the same article was recorded in the last
-        // 30s (typical of an A → B → back-to-A swipe-and-tap), just bump its
-        // readAt instead of inserting a duplicate row. The `historyRecorded`
-        // guard above is per-view-instance; this catches the case where the
-        // view itself was reborn.
+        // History lists articles, not visits: re-reading one bumps its existing
+        // row to the top instead of stacking another copy.
         let snapshotTitle = title
         let snapshotLanguage = language
-        let cutoff = Date.now.addingTimeInterval(-30)
-        let recentDescriptor = FetchDescriptor<HistoryEntry>(
+        let descriptor = FetchDescriptor<HistoryEntry>(
             predicate: #Predicate { entry in
-                entry.title == snapshotTitle && entry.language == snapshotLanguage && entry.readAt > cutoff
-            }
+                entry.title == snapshotTitle && entry.language == snapshotLanguage
+            },
+            sortBy: [SortDescriptor(\.readAt, order: .reverse)]
         )
-        if let recent = try? modelContext.fetch(recentDescriptor).first {
-            recent.readAt = .now
-            // Backfill thumb/summary if the recent row was missing it.
-            if recent.thumbnailURL == nil, let url = summary?.thumbnailURL {
-                recent.thumbnailURL = url
+        let existing = (try? modelContext.fetch(descriptor)) ?? []
+        if let newest = existing.first {
+            newest.readAt = .now
+            // Backfill thumb/summary if the row was missing it.
+            if newest.thumbnailURL == nil, let url = summary?.thumbnailURL {
+                newest.thumbnailURL = url
             }
-            if recent.summary == nil, let desc = summary?.description {
-                recent.summary = desc
+            if newest.summary == nil, let desc = summary?.description {
+                newest.summary = desc
             }
+            for stale in existing.dropFirst() { modelContext.delete(stale) }
             try? modelContext.save()
             return
         }

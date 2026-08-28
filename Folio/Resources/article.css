@@ -11,7 +11,7 @@ html, body {
     color: var(--folio-fg);
     font-family: "EB Garamond", "New York", ui-serif, Georgia, "Times New Roman", serif;
     font-size: calc(17px * var(--folio-font-scale, 1.0));
-    line-height: 1.62;
+    line-height: 1.52;
     -webkit-font-smoothing: antialiased;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -19,6 +19,8 @@ html, body {
 }
 
 body {
+    max-width: 26rem;
+    margin: 0 auto;
     padding: 16px 20px 96px 20px;
 }
 
@@ -40,7 +42,9 @@ h2 {
 h3 { font-size: 1.22em; }
 h4 { font-size: 1.08em; }
 
-p { margin: 0 0 0.85em 0; }
+/* Exactly half a line (1.52em/2) so the paragraph gap stays a clean
+   fraction of the line rather than an arbitrary value. */
+p { margin: 0 0 0.76em 0; }
 
 /* V for Wikipedia's reader has no drop cap — the visual hero is the title overlaid on the
    image (see .folio-header below). Body just begins with Wikipedia's bolded subject. */
@@ -48,7 +52,7 @@ p { margin: 0 0 0.85em 0; }
 a {
     color: var(--folio-link);
     text-decoration: none;
-    font-weight: 600;
+    font-weight: inherit;
     border-bottom: none;
 }
 a:active { opacity: 0.6; }
@@ -76,6 +80,14 @@ a:active { opacity: 0.6; }
     background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.4) 35%, rgba(0,0,0,0) 65%);
     pointer-events: none;
 }
+/* Body text needs hyphenation at this measure, German especially, but a
+   hyphenated headline reads as a typesetting failure. Display type is set
+   wide enough never to need it. */
+h1, h2, h3, h4, h5, h6, .folio-title {
+    hyphens: none;
+    -webkit-hyphens: none;
+}
+
 .folio-title {
     position: relative;
     z-index: 1;
@@ -83,7 +95,7 @@ a:active { opacity: 0.6; }
     font-family: "EB Garamond", "New York", ui-serif, Georgia, serif;
     font-style: italic;
     font-weight: 400;
-    font-size: 2.6em;
+    font-size: calc(44.2px * var(--folio-title-scale, 1.0));
     line-height: 1.05;
     color: #ffffff;
     border-bottom: none;
@@ -103,7 +115,7 @@ a:active { opacity: 0.6; }
     color: var(--folio-fg);
     margin: 0;
     text-shadow: none;
-    font-size: 2.4em;
+    font-size: calc(40.8px * var(--folio-title-scale, 1.0));
 }
 
 figure { margin: 1.2em -20px; }
@@ -293,7 +305,8 @@ section[data-mw-section-id] {
 /* Long German compounds (`Umgangssprache`, `Bevölkerungsentwicklung`) are
    one indivisible token to the line-breaker, so they bloat the value column
    and force the whole table to overflow the card. Prefer OS-driven syllable
-   hyphenation (mobile-html ships lang="de" so iOS picks the right dictionary),
+   hyphenation (ArticleHTML restores the source language on the document root
+   so iOS picks the right dictionary),
    fall back to a mid-word break as a last resort. */
 .infobox td {
     overflow-wrap: anywhere;
