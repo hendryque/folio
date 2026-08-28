@@ -40,3 +40,6 @@ Folio/GeneratedInfo.plist
 # Secret guard — machine-local policy stays local
 .gitleaks.local.toml
 .githooks/*.local
+
+# Working design notes, kept local
+docs/*.md
