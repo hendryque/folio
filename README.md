@@ -7,11 +7,16 @@ something in their APIs and the Today view went blank. So I built Folio: a
 personal recreation of the parts I used every day. It is an homage, not a replacement. The original's polish took years. This took a few evenings, and it shows in places.
 
 <p align="center">
-  <img src="docs/screenshots/today.jpg" width="200" alt="Today screen with featured and most-read articles as a photo grid">
-  <img src="docs/screenshots/reader.jpg" width="200" alt="Reader showing the Metropolitan Museum of Art article">
-  <img src="docs/screenshots/nearby.jpg" width="200" alt="Nearby articles on a map of Central Park">
-  <img src="docs/screenshots/settings.jpg" width="200" alt="Settings with appearance and font size">
+  <img src="docs/screenshots/reader.png" width="424" alt="The reader showing the Metropolitan Museum of Art article, set in EB Garamond">
 </p>
+
+<p align="center">
+  <img src="docs/screenshots/today.png" width="246" alt="Today screen with featured and most-read articles as a photo grid">
+  <img src="docs/screenshots/nearby.png" width="246" alt="Nearby articles on a map of Central Park">
+  <img src="docs/screenshots/settings.png" width="246" alt="Settings with appearance and font size">
+</p>
+
+<p align="center"><sub>Today, Nearby, Settings</sub></p>
 
 ## What it does
 
