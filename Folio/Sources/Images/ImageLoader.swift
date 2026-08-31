@@ -20,6 +20,18 @@ private final class DecodedImageCache: @unchecked Sendable {
     }
 }
 
+/// Mean luminance measurements, keyed like the bitmap cache. Small enough
+/// to keep in a plain dictionary behind a lock.
+private final class LuminanceCache: @unchecked Sendable {
+    private var values: [String: Double] = [:]
+    private let lock = NSLock()
+
+    subscript(key: String) -> Double? {
+        get { lock.lock(); defer { lock.unlock() }; return values[key] }
+        set { lock.lock(); defer { lock.unlock() }; values[key] = newValue }
+    }
+}
+
 /// Folio's one image pipeline: a dedicated URLSession with a real disk cache,
 /// an NSCache of decoded bitmaps, and in-flight request coalescing. Every
 /// remote image in the app — tiles, rows, heroes, lightbox, Vision input —
@@ -28,6 +40,7 @@ actor ImageLoader {
     static let shared = ImageLoader()
 
     private static let memory = DecodedImageCache(totalCostLimit: 64 * 1024 * 1024)
+    private static let luminance = LuminanceCache()
 
     private let session: URLSession
     private var inFlight: [String: Task<UIImage?, Never>] = [:]
@@ -70,7 +83,13 @@ actor ImageLoader {
                 let (data, response) = try? await session.data(from: url),
                 (response as? HTTPURLResponse).map({ 200..<300 ~= $0.statusCode }) ?? true
             else { return nil }
-            return Self.decode(data, maxPixelSize: maxPixelSize)
+            let decoded = Self.decode(data, maxPixelSize: maxPixelSize)
+            // Measured here, off-main, so the value is ready the moment the
+            // image is. Computing it later would darken tiles after they paint.
+            if let cg = decoded?.cgImage {
+                Self.luminance[key] = Self.titleBandLuminance(cg)
+            }
+            return decoded
         }
         inFlight[key] = task
         let image = await task.value
@@ -85,6 +104,44 @@ actor ImageLoader {
         for url in urls {
             Task(priority: .utility) { _ = await self.image(for: url) }
         }
+    }
+
+    /// Mean luminance of the band a Today tile puts its title in, or nil if
+    /// the image has not been decoded yet.
+    nonisolated static func cachedLuminance(_ url: URL, maxPixelSize: CGFloat? = nil) -> Double? {
+        luminance[key(url, maxPixelSize)]
+    }
+
+    /// Tiles crop 3:4 from the top and set the title 25-58% up from the
+    /// bottom, so only that band decides whether white text will hold.
+    private nonisolated static func titleBandLuminance(_ image: CGImage) -> Double? {
+        let cropH = min(image.height, Int(Double(image.width) * 4.0 / 3.0))
+        guard cropH > 0, let visible = image.cropping(
+            to: CGRect(x: 0, y: 0, width: image.width, height: cropH)
+        ) else { return nil }
+        let w = 24, h = 32
+        guard let ctx = CGContext(
+            data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        ctx.interpolationQuality = .medium
+        ctx.draw(visible, in: CGRect(x: 0, y: 0, width: w, height: h))
+        guard let data = ctx.data else { return nil }
+        let px = data.bindMemory(to: UInt8.self, capacity: w * h * 4)
+        var total = 0.0, count = 0
+        for y in 0..<h {
+            let fromBottom = Double(h - 1 - y) / Double(h)
+            guard fromBottom >= 0.25, fromBottom <= 0.58 else { continue }
+            for x in 0..<w {
+                let i = (y * w + x) * 4
+                total += 0.2126 * Double(px[i]) / 255
+                    + 0.7152 * Double(px[i + 1]) / 255
+                    + 0.0722 * Double(px[i + 2]) / 255
+                count += 1
+            }
+        }
+        return count > 0 ? total / Double(count) : nil
     }
 
     private nonisolated static func key(_ url: URL, _ maxPixelSize: CGFloat?) -> String {

@@ -21,6 +21,33 @@ struct Tile: View {
         article.imageURL(width: ThumbnailWidth.tile)
     }
 
+    /// A fixed scrim has to serve both a dark portrait and a bright poster, so
+    /// it over-darkens most tiles to rescue a few. Measured across one day's
+    /// feed the required alpha ranged 0.00 to 0.58.
+    private var scrimStrength: Double {
+        guard let url = imageURL,
+              let mean = ImageLoader.cachedLuminance(url)
+        else { return Self.baselineTitleAlpha }
+        // Alpha that puts white text on a ground of roughly 3:1.
+        return min(0.85, max(0.30, 1 - 0.34 / max(mean, 0.001)))
+    }
+
+    /// The ramp is shaped for a 3-line title reaching 53% of the tile, then
+    /// scaled as a whole so the title band lands on `scrimStrength`.
+    private var scrimStops: [Gradient.Stop] {
+        let k = scrimStrength / Self.baselineTitleAlpha
+        func alpha(_ v: Double) -> Double { min(0.92, v * k) }
+        return [
+            .init(color: .black.opacity(alpha(0.88)), location: 0.0),
+            .init(color: .black.opacity(alpha(0.72)), location: 0.32),
+            .init(color: .black.opacity(alpha(0.40)), location: 0.60),
+            .init(color: .clear, location: 0.88)
+        ]
+    }
+
+    /// What the unscaled ramp yields at the title band.
+    private static let baselineTitleAlpha = 0.61
+
     var body: some View {
         GeometryReader { geo in
             let height = geo.size.width * 4.0 / 3.0
@@ -47,16 +74,8 @@ struct Tile: View {
                 tint.opacity(0.15)
                     .frame(width: geo.size.width, height: height)
 
-                // A 3-line title reaches 53% of the tile, so the scrim has to
-                // stay substantial that high: over a bright poster the old
-                // ramp left the title at 1.5:1 contrast.
                 LinearGradient(
-                    stops: [
-                        .init(color: .black.opacity(0.88), location: 0.0),
-                        .init(color: .black.opacity(0.72), location: 0.32),
-                        .init(color: .black.opacity(0.40), location: 0.60),
-                        .init(color: .clear, location: 0.88)
-                    ],
+                    stops: scrimStops,
                     startPoint: .bottom,
                     endPoint: .top
                 )
