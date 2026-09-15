@@ -25,7 +25,8 @@ personal recreation of the parts I used every day. It is an homage, not a replac
 - Reader: EB Garamond at a capped reading measure, locale-aware typography and
   hyphenation, on-device face-aware hero crops, light/sepia/dark themes, pinch
   to change text size, table of contents, and image gallery. A lead image
-  promoted to the hero is not repeated in the article body.
+  promoted to the hero is not repeated in the article body, and any image
+  opens full screen with its caption, the hero included.
 - Nearby: Wikipedia articles around you, on a map
 - Search, bookmarks, and reading history, stored locally with SwiftData
 - English and German Wikipedia, toggled from the header
@@ -37,12 +38,16 @@ Wikipedia's geosearch endpoint and nowhere further.
 
 ## Typography
 
-The settings follow the reading mode. Today and Nearby are scanning surfaces,
-so article titles use EB Garamond Medium roman. The reader defaults to 17/25
-with a 31rem maximum measure; its display title scales independently and stops
-at 120%, while body text retains the full setting range. Folio restores each
-article's document language before layout and applies locale-aware punctuation,
-so English and German hyphenation and quotation conventions remain distinct.
+The type follows the reading situation. Today and Nearby are scanning
+surfaces, so titles there use EB Garamond Medium, italic on the grid, and
+each Today tile darkens its image only as much as that image's measured
+brightness requires. The reader sets 17px at 1.52 line height with the
+measure capped at 26rem, about 66 characters. Prose uses old-style figures;
+tables and infoboxes keep lining tabular figures so columns align. The
+display title scales independently and stops at 120%, while body text keeps
+the full setting range. Folio restores each article's document language
+before layout and applies locale-aware punctuation, so English and German
+hyphenation and quotation conventions stay distinct.
 
 ## Building
 
