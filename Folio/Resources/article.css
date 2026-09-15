@@ -368,11 +368,12 @@ section[data-mw-section-id] {
 .infobox-image img,
 .infobox .infobox-image img,
 /* German Wikipedia (and a few others) drop the hero image into a plain
-   `<td colspan="2">` instead of giving it a class. Catch any image inside
-   a spanning cell and treat it as the hero. */
+   `<td colspan="2">` instead of giving it a class, so any image in a
+   spanning cell is treated as the hero. Cap rather than force the width:
+   Wikipedia serves these at 20 to 500px and forcing 100% upscaled the
+   lot, turning a 20px sport pictogram into a full-width blur. */
 .infobox td[colspan] img,
 .infobox th[colspan] img {
-    width: 100%;
     height: auto;
     max-width: 100%;
     display: block;
