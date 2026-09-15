@@ -285,6 +285,13 @@ section[data-mw-section-id] {
 /* Fixed layout makes the table honour our width instead of growing to its
    widest unbreakable cell, which is what pushed infoboxes off a 375pt
    screen. Cells wrap or break rather than the table overflowing. */
+/* We strip the colour out of Wikipedia's border shorthands, which leaves
+   CSS falling back to currentColor and drawing them in near-black text
+   colour. Supply our divider tone so the rules stay quiet. */
+.infobox, .infobox * {
+    border-color: var(--folio-divider);
+}
+
 .infobox {
     table-layout: fixed;
     /* Wikipedia's inline side margins sit outside our forced width and

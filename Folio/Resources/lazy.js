@@ -7,13 +7,20 @@
     var BORDER_STYLE = /^(none|hidden|dotted|dashed|solid|double|groove|ridge|inset|outset)$/;
     var BORDER_WIDTH = /^(thin|medium|thick|[0-9.]+(px|em|rem|pt|ex|ch|vw|vh)?)$/;
 
-    // The shorthand carries width and style as well as colour, so keep the
-    // rule itself and let our CSS supply the colour.
-    function borderWithoutColour(value) {
-        return value.split(/\s+/).filter(function(token) {
+    // Emit longhands rather than the shorthand: a shorthand resets
+    // border-color to currentColor, which is near-black text, and being
+    // inline it would beat the divider tone our CSS supplies.
+    function borderLonghands(property, value) {
+        var width = '', style = '';
+        value.split(/\s+/).forEach(function(token) {
             var t = token.toLowerCase();
-            return BORDER_STYLE.test(t) || BORDER_WIDTH.test(t);
-        }).join(' ');
+            if (BORDER_STYLE.test(t)) { style = t; }
+            else if (BORDER_WIDTH.test(t)) { width = t; }
+        });
+        var out = [];
+        if (width) out.push(property + '-width: ' + width);
+        if (style) out.push(property + '-style: ' + style);
+        return out;
     }
 
     function cleanInfoboxStyles() {
@@ -27,8 +34,8 @@
                 if (!property || !value) return;
                 if (DROP_PROPERTY.test(property)) return;
                 if (BORDER_SHORTHAND.test(property)) {
-                    value = borderWithoutColour(value);
-                    if (!value) return;
+                    kept.push.apply(kept, borderLonghands(property, value));
+                    return;
                 }
                 kept.push(property + ': ' + value);
             });
