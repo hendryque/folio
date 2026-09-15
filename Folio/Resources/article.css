@@ -282,6 +282,20 @@ section[data-mw-section-id] {
 }
 
 /* Infoboxes and sidebars — render as full-width cards instead of float */
+/* Fixed layout makes the table honour our width instead of growing to its
+   widest unbreakable cell, which is what pushed infoboxes off a 375pt
+   screen. Cells wrap or break rather than the table overflowing. */
+.infobox {
+    table-layout: fixed;
+    /* Wikipedia's inline side margins sit outside our forced width and
+       pushed the card off-centre and past the right padding. */
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+.infobox td, .infobox th {
+    overflow-wrap: anywhere;
+}
+
 .infobox, .sidebar, .vertical-navbox {
     display: block;
     float: none;
