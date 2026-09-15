@@ -1,11 +1,42 @@
 (function() {
+    // Wikipedia hard-codes template colours in infoboxes. Strip those, but
+    // keep geometry: location maps, collapsed rows and hidden scaffolding are
+    // all built from inline position, size, display and visibility.
+    var DROP_PROPERTY = /^(color|background|background-color|background-image|border-color|font-family|box-shadow|outline)$/;
+    var BORDER_SHORTHAND = /^border(-top|-right|-bottom|-left)?$/;
+    var BORDER_STYLE = /^(none|hidden|dotted|dashed|solid|double|groove|ridge|inset|outset)$/;
+    var BORDER_WIDTH = /^(thin|medium|thick|[0-9.]+(px|em|rem|pt|ex|ch|vw|vh)?)$/;
+
+    // The shorthand carries width and style as well as colour, so keep the
+    // rule itself and let our CSS supply the colour.
+    function borderWithoutColour(value) {
+        return value.split(/\s+/).filter(function(token) {
+            var t = token.toLowerCase();
+            return BORDER_STYLE.test(t) || BORDER_WIDTH.test(t);
+        }).join(' ');
+    }
+
     function cleanInfoboxStyles() {
-        // Wikipedia hard-codes team colors and templated layout via inline !important
-        // styles (e.g. .infobox-header with Mavs navy + orange). Strip ALL inline styles
-        // inside any .infobox so our CSS can take over. Layout-affecting styles (width,
-        // text-align) are rare inside infobox cells, and our CSS supplies sensible defaults.
         document.querySelectorAll('.infobox [style]').forEach(function(el) {
-            el.removeAttribute('style');
+            var kept = [];
+            el.getAttribute('style').split(';').forEach(function(declaration) {
+                var split = declaration.indexOf(':');
+                if (split < 0) return;
+                var property = declaration.slice(0, split).trim().toLowerCase();
+                var value = declaration.slice(split + 1).trim();
+                if (!property || !value) return;
+                if (DROP_PROPERTY.test(property)) return;
+                if (BORDER_SHORTHAND.test(property)) {
+                    value = borderWithoutColour(value);
+                    if (!value) return;
+                }
+                kept.push(property + ': ' + value);
+            });
+            if (kept.length) {
+                el.setAttribute('style', kept.join('; '));
+            } else {
+                el.removeAttribute('style');
+            }
         });
     }
 

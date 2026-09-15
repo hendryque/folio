@@ -268,6 +268,11 @@ struct ArticleReaderView: View {
         webViewReady = false
         galleryItems = []
         initialScrollY = 0
+        #if DEBUG
+        // Deterministic scroll for automated screenshots, e.g.
+        // `-screenshotScrollY 1800`. Never set in a release build.
+        initialScrollY = UserDefaults.standard.double(forKey: "screenshotScrollY")
+        #endif
         // A refresh from a previous identity must not race the new render.
         refreshTask?.cancel()
         refreshTask = nil

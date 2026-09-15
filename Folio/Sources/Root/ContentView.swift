@@ -372,7 +372,8 @@ private struct SearchResultRow: View {
 extension ContentView {
     /// Click-free navigation for automated simulator screenshots, e.g.
     /// `simctl launch <sim> me.scott.folio -screenshotTab nearby`,
-    /// `-screenshotArticle "Albert Einstein"`, `-screenshotSettings 1`.
+    /// `-screenshotArticle "Albert Einstein" -screenshotLanguage de`,
+    /// `-screenshotSettings 1`.
     /// simctl passes `-key value` pairs straight into UserDefaults.
     fileprivate func applyScreenshotOverrides() {
         #if DEBUG
@@ -384,7 +385,8 @@ extension ContentView {
         default: break
         }
         if let article = defaults.string(forKey: "screenshotArticle") {
-            todayPath = [ArticleDestination(title: article, language: language)]
+            let lang = defaults.string(forKey: "screenshotLanguage") ?? language
+            todayPath = [ArticleDestination(title: article, language: lang)]
         }
         if defaults.bool(forKey: "screenshotSettings") {
             showSettings = true
