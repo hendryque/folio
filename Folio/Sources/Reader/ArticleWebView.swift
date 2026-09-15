@@ -22,7 +22,7 @@ struct ArticleWebView: UIViewRepresentable {
     @Binding var pendingScrollAnchor: String?
 
     var onSections: ([ArticleSection]) -> Void = { _ in }
-    var onImageTap: (URL) -> Void = { _ in }
+    var onImageTap: (URL, String?) -> Void = { _, _ in }
     var onFontScale: (Double) -> Void = { _ in }
     var onInternalLink: (ArticleDestination) -> Void = { _ in }
     var onScroll: (Double) -> Void = { _ in }
@@ -165,7 +165,7 @@ struct ArticleWebView: UIViewRepresentable {
         var currentTitle: String
         var initialScrollY: Double
         var onSections: ([ArticleSection]) -> Void
-        var onImageTap: (URL) -> Void
+        var onImageTap: (URL, String?) -> Void
         var onFontScale: (Double) -> Void
         var onInternalLink: (ArticleDestination) -> Void
         var onScroll: (Double) -> Void
@@ -189,7 +189,7 @@ struct ArticleWebView: UIViewRepresentable {
             currentTitle: String,
             initialScrollY: Double,
             onSections: @escaping ([ArticleSection]) -> Void,
-            onImageTap: @escaping (URL) -> Void,
+            onImageTap: @escaping (URL, String?) -> Void,
             onFontScale: @escaping (Double) -> Void,
             onInternalLink: @escaping (ArticleDestination) -> Void,
             onScroll: @escaping (Double) -> Void,
@@ -234,7 +234,8 @@ struct ArticleWebView: UIViewRepresentable {
                     let url = URL(string: urlString),
                     url.scheme?.lowercased() == "https"
                 else { return }
-                onImageTap(url)
+                let caption = (dict["caption"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                onImageTap(url, caption?.isEmpty == false ? caption : nil)
 
             case "fontScale":
                 guard

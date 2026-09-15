@@ -2,11 +2,18 @@ import SwiftUI
 
 struct IdentifiedURL: Identifiable, Hashable {
     let url: URL
+    var caption: String?
     var id: URL { url }
+
+    init(url: URL, caption: String? = nil) {
+        self.url = url
+        self.caption = caption
+    }
 }
 
 struct ImageLightbox: View {
     let url: URL
+    var caption: String?
 
     @Environment(\.dismiss) private var dismiss
     @State private var scale: CGFloat = 1.0
@@ -52,6 +59,18 @@ struct ImageLightbox: View {
                 }
             }
             .ignoresSafeArea()
+
+            if let caption, !caption.isEmpty {
+                Text(caption)
+                    .font(.custom("EBGaramond-Regular", size: 15, relativeTo: .footnote))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(4)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 44)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .allowsHitTesting(false)
+            }
 
             Button {
                 dismiss()

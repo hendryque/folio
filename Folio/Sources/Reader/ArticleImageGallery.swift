@@ -52,14 +52,14 @@ struct ArticleImageGallery: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .fullScreenCover(item: $lightbox) { wrapped in
-            ImageLightbox(url: wrapped.url)
+            ImageLightbox(url: wrapped.url, caption: wrapped.caption)
         }
     }
 
     @ViewBuilder
     private func thumbnail(_ item: MediaItem) -> some View {
         Button {
-            lightbox = IdentifiedURL(url: item.originalURL)
+            lightbox = IdentifiedURL(url: item.originalURL, caption: item.caption)
         } label: {
             RemoteImage(url: item.thumbnailURL) { phase in
                 switch phase {

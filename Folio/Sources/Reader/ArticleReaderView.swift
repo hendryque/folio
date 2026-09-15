@@ -88,7 +88,7 @@ struct ArticleReaderView: View {
             ArticleImageGallery(items: galleryItems, theme: theme)
         }
         .fullScreenCover(item: $lightbox) { wrapped in
-            ImageLightbox(url: wrapped.url)
+            ImageLightbox(url: wrapped.url, caption: wrapped.caption)
         }
         .navigationDestination(item: $pushedArticle) { dest in
             ArticleReaderView(title: dest.title, language: dest.language ?? language)
@@ -142,7 +142,7 @@ struct ArticleReaderView: View {
                     initialScrollY: initialScrollY,
                     pendingScrollAnchor: $pendingScrollAnchor,
                     onSections: { sections = $0 },
-                    onImageTap: { lightbox = IdentifiedURL(url: $0) },
+                    onImageTap: { lightbox = IdentifiedURL(url: $0, caption: $1) },
                     onFontScale: persistFontScale,
                     onInternalLink: { pushedArticle = $0 },
                     onScroll: handleScroll,

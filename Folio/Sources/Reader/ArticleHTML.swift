@@ -85,7 +85,7 @@ enum ArticleHTML {
             position = "50% 28%"
         }
         return #"""
-        <header class="folio-header" style="background-image: url('\#(safeURL)'); background-position: \#(position);">
+        <header class="folio-header" data-hero-src="\#(safeURL)" style="background-image: url('\#(safeURL)'); background-position: \#(position);">
           <h1 class="folio-title">\#(display)</h1>
         </header>
         """#
