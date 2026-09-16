@@ -1,0 +1,43 @@
+/* De:Bug — tribute to the Berlin "Magazin für elektronische Lebensaspekte"
+   (1997–2014, design Lars Hammerschmidt). Newsprint, one spot colour per
+   issue, Fakt for display; Barlow Semi Condensed stands in for it. */
+[data-theme="debug"], [data-theme="debug"] body {
+    --folio-bg: #e8e5de;
+    --folio-fg: #1c1b19;
+    --folio-secondary: #6b6862;
+    --folio-link: #c9006b;
+    --folio-link-underline: rgba(201, 0, 107, 0.4);
+    --folio-divider: rgba(28, 27, 25, 0.16);
+    --folio-accent: #c9006b;
+    --folio-card-bg: #efede6;
+    --folio-code-bg: rgba(28, 27, 25, 0.06);
+}
+
+/* Display type is the costume that works: Barlow Semi Condensed standing in
+   for Fakt. The body face stays Garamond for now; see docs/typography.md. */
+body[data-theme="debug"] h1,
+body[data-theme="debug"] h2,
+body[data-theme="debug"] h3,
+body[data-theme="debug"] h4 {
+    font-family: "Barlow Semi Condensed", "Helvetica Neue", sans-serif;
+    font-weight: 700;
+    line-height: 1.1;
+}
+[data-theme="debug"] h2 { border-bottom-width: 2px; }
+
+/* The hero drops the italic: De:Bug headlines were bold grotesque. */
+[data-theme="debug"] .folio-title {
+    font-family: "Barlow Semi Condensed", "Helvetica Neue", sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: calc(42px * var(--folio-title-scale, 1.0));
+    line-height: 1.04;
+}
+[data-theme="debug"] .folio-header-textonly .folio-title {
+    font-size: calc(38px * var(--folio-title-scale, 1.0));
+}
+
+[data-theme="debug"] figcaption,
+[data-theme="debug"] .folio-colophon {
+    font-family: "Barlow Semi Condensed", "Helvetica Neue", sans-serif;
+}

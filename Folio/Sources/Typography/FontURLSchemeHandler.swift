@@ -18,7 +18,10 @@ final class FontURLSchemeHandler: NSObject, WKURLSchemeHandler {
         "EBGaramond-Regular",
         "EBGaramond-Italic",
         "EBGaramond-Bold",
-        "EBGaramond-BoldItalic"
+        "EBGaramond-BoldItalic",
+        "BarlowSemiCondensed-Regular",
+        "BarlowSemiCondensed-Medium",
+        "BarlowSemiCondensed-Bold"
     ]
 
     func webView(_ webView: WKWebView, start urlSchemeTask: any WKURLSchemeTask) {
@@ -30,9 +33,11 @@ final class FontURLSchemeHandler: NSObject, WKURLSchemeHandler {
         let fileName = url.lastPathComponent
         let baseName = (fileName as NSString).deletingPathExtension
 
+        let ext = (fileName as NSString).pathExtension.lowercased()
         guard
             Self.allowedFonts.contains(baseName),
-            let fontURL = Bundle.main.url(forResource: baseName, withExtension: "otf"),
+            ["otf", "ttf"].contains(ext),
+            let fontURL = Bundle.main.url(forResource: baseName, withExtension: ext),
             let data = try? Data(contentsOf: fontURL)
         else {
             urlSchemeTask.didFailWithError(URLError(.fileDoesNotExist))
@@ -44,7 +49,7 @@ final class FontURLSchemeHandler: NSObject, WKURLSchemeHandler {
             statusCode: 200,
             httpVersion: "HTTP/1.1",
             headerFields: [
-                "Content-Type": "font/otf",
+                "Content-Type": ext == "ttf" ? "font/ttf" : "font/otf",
                 "Content-Length": "\(data.count)",
                 "Cache-Control": "public, max-age=31536000, immutable"
             ]

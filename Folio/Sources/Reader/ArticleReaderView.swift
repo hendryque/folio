@@ -211,14 +211,7 @@ struct ArticleReaderView: View {
         bookmarks.contains { $0.title == title && $0.language == language }
     }
 
-    private var themeIcon: String {
-        switch theme {
-        case .system: "circle.lefthalf.filled"
-        case .light: "sun.max"
-        case .sepia: "book"
-        case .dark: "moon"
-        }
-    }
+    private var themeIcon: String { theme.iconName }
 
     private func cycleTheme() {
         guard let settings else { return }

@@ -32,5 +32,26 @@ enum BundledFonts {
         font-style: italic;
         font-display: block;
     }
+        @font-face {
+        font-family: "Barlow Semi Condensed";
+        src: url("folio-font://fonts/BarlowSemiCondensed-Regular.ttf") format("truetype");
+        font-weight: 400;
+        font-style: normal;
+        font-display: block;
+    }
+    @font-face {
+        font-family: "Barlow Semi Condensed";
+        src: url("folio-font://fonts/BarlowSemiCondensed-Medium.ttf") format("truetype");
+        font-weight: 500;
+        font-style: normal;
+        font-display: block;
+    }
+    @font-face {
+        font-family: "Barlow Semi Condensed";
+        src: url("folio-font://fonts/BarlowSemiCondensed-Bold.ttf") format("truetype");
+        font-weight: 700;
+        font-style: normal;
+        font-display: block;
+    }
     """
 }

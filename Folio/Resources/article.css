@@ -438,3 +438,14 @@ section[data-mw-section-id] {
 
 /* Math — keep it readable */
 .mwe-math-element { font-size: 1em; }
+
+/* Attribution at the point of use, as CC BY-SA asks. */
+.folio-colophon {
+    margin-top: 3em;
+    padding-top: 1em;
+    border-top: 1px solid var(--folio-divider);
+    font-size: 0.8em;
+    color: var(--folio-secondary);
+    line-height: 1.5;
+}
+.folio-colophon a { color: var(--folio-secondary); text-decoration: underline; font-weight: inherit; }

@@ -99,13 +99,7 @@ struct TableOfContentsDrawer: View {
         .padding(.bottom, 14)
     }
 
-    private var themeBackground: Color {
-        switch theme {
-        case .sepia: Color(red: 0.957, green: 0.926, blue: 0.847)
-        case .dark: Color(red: 0.102, green: 0.102, blue: 0.110)
-        default: Color(.systemBackground)
-        }
-    }
+    private var themeBackground: Color { theme.paper }
 }
 
 private struct TOCRow: View {

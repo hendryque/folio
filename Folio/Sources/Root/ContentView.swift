@@ -391,6 +391,11 @@ extension ContentView {
         if defaults.bool(forKey: "screenshotSettings") {
             showSettings = true
         }
+        if let themeRaw = defaults.string(forKey: "screenshotTheme"),
+           Theme(rawValue: themeRaw) != nil {
+            settings?.theme = themeRaw
+            try? modelContext.save()
+        }
         #endif
     }
 }

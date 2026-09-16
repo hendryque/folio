@@ -23,7 +23,8 @@ personal recreation of the parts I used every day. It is an homage, not a replac
 - Today: Wikipedia's featured article, most-read, and news as a photo grid with
   stable crops that do not reposition after appearing
 - Reader: EB Garamond at a capped reading measure, locale-aware typography and
-  hyphenation, on-device face-aware hero crops, light/sepia/dark themes, pinch
+  hyphenation, on-device face-aware hero crops, light, sepia and dark themes
+  plus a De:Bug tribute theme, pinch
   to change text size, table of contents, and image gallery. A lead image
   promoted to the hero is not repeated in the article body, and any image
   opens full screen with its caption, the hero included.

@@ -34,7 +34,7 @@ struct ArticleLoadingPreview: View {
                         hero(url: url)
                     } else {
                         Text(displayTitle)
-                            .font(.custom("EBGaramond-Italic", size: textOnlyTitleSize, relativeTo: .largeTitle))
+                            .font(.custom(theme.titleFontName, size: textOnlyTitleSize, relativeTo: .largeTitle))
                             .foregroundStyle(.primary)
                             .padding(.horizontal, 20)
                             .padding(.top, 20)
@@ -43,7 +43,7 @@ struct ArticleLoadingPreview: View {
 
                     if summary.extract != nil {
                         Text(styledExtract)
-                            .font(.custom("EBGaramond-Regular", size: 17 * fontScale, relativeTo: .body))
+                            .font(.custom(theme.bodyFontName, size: theme.bodySize * fontScale, relativeTo: .body))
                             .foregroundStyle(.primary)
                             .lineSpacing(extractLineSpacing)
                             .padding(.horizontal, 20)
@@ -92,17 +92,17 @@ struct ArticleLoadingPreview: View {
     /// follows the reader setting only to 120%, while body text keeps the
     /// full configured scale range.
     private var titleScale: Double { min(max(fontScale, 0.85), 1.2) }
-    private var heroTitleSize: Double { 44.2 * titleScale }
-    private var textOnlyTitleSize: Double { 40.8 * titleScale }
+    private var heroTitleSize: Double { theme.heroTitleSize * titleScale }
+    private var textOnlyTitleSize: Double { theme.textOnlyTitleSize * titleScale }
 
     /// article.css body: 17px at line-height 1.52. SwiftUI's lineSpacing is
     /// *extra* points on top of the font's natural leading — subtract it, or
     /// the preview text sits visibly tighter than the rendered article and
     /// the cross-fade reads as a jump.
     private var extractLineSpacing: Double {
-        let size = 17 * fontScale
-        let natural = UIFont(name: "EBGaramond-Regular", size: size)?.lineHeight ?? size * 1.2
-        return max(0, size * 1.52 - natural)
+        let size = theme.bodySize * fontScale
+        let natural = UIFont(name: theme.bodyFontName, size: size)?.lineHeight ?? size * 1.2
+        return max(0, size * theme.bodyLineHeight - natural)
     }
 
     /// The rendered article opens with the subject in bold. Take that span
@@ -112,17 +112,11 @@ struct ArticleLoadingPreview: View {
         var attributed = AttributedString(summary.extract ?? "")
         guard let lead = summary.leadBoldPhrase,
               let range = attributed.range(of: lead) else { return attributed }
-        attributed[range].font = .custom("EBGaramond-Bold", size: 17 * fontScale, relativeTo: .body)
+        attributed[range].font = .custom(theme.bodyBoldFontName, size: theme.bodySize * fontScale, relativeTo: .body)
         return attributed
     }
 
-    private var backgroundColor: Color {
-        switch theme {
-        case .sepia: Color(red: 0.957, green: 0.926, blue: 0.847)
-        case .dark: Color(red: 0.102, green: 0.102, blue: 0.110)
-        default: Color(.systemBackground)
-        }
-    }
+    private var backgroundColor: Color { theme.paper }
 
     @ViewBuilder
     private func hero(url: URL) -> some View {
@@ -155,7 +149,7 @@ struct ArticleLoadingPreview: View {
                 .allowsHitTesting(false)
 
                 Text(displayTitle)
-                    .font(.custom("EBGaramond-Italic", size: heroTitleSize, relativeTo: .largeTitle))
+                    .font(.custom(theme.titleFontName, size: heroTitleSize, relativeTo: .largeTitle))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.45), radius: 12, y: 1)
                     .padding(.horizontal, 20)

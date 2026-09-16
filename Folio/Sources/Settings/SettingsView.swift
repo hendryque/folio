@@ -84,6 +84,7 @@ struct SettingsView: View {
         case .light: "Pure white background. Maximum contrast for daytime reading."
         case .sepia: "Warm parchment background. Easier on the eyes for long sessions."
         case .dark: "Dim background. Best for low-light and night reading."
+        case .debug: "Newsprint and one spot colour. A tribute to De:Bug, the Berlin Magazin für elektronische Lebensaspekte (1997–2014)."
         }
     }
 
@@ -201,6 +202,8 @@ private struct ThemePreview: View {
                 ThemeMockup(palette: .sepia)
             case .dark:
                 ThemeMockup(palette: .dark)
+            case .debug:
+                ThemeMockup(palette: .debug)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -256,6 +259,11 @@ private struct ThemePalette {
         fg: Color(red: 0.91, green: 0.91, blue: 0.92),
         accent: Color(red: 1.0, green: 0.52, blue: 0.34)
     )
+    static let debug = ThemePalette(
+        bg: Color(red: 0.910, green: 0.898, blue: 0.871),
+        fg: Color(red: 0.110, green: 0.106, blue: 0.098),
+        accent: Color(red: 0.788, green: 0.0, blue: 0.420)
+    )
 }
 
 // MARK: - About
@@ -271,11 +279,12 @@ struct AboutView: View {
             Section("Credits") {
                 Text("Folio is a personal reader for Wikipedia, inspired by V for Wikipedia (Raureif, 2016) by Frank Rausch. Typographizer logic adapted from the Raureif/Typographizer project (MIT).")
                     .font(.callout)
-                Text("Typography is set in EB Garamond by Georg Mayr-Duffner & Octavio Pardo (SIL Open Font License).")
+                Text("Typography is set in EB Garamond by Georg Mayr-Duffner & Octavio Pardo. The De:Bug theme uses Barlow Semi Condensed by Jeremy Tribby. All bundled fonts are under the SIL Open Font License.")
                     .font(.callout)
             }
             Section("Source") {
-                Text("Wikipedia content is licensed under CC BY-SA 4.0.")
+                Link("Wikipedia content is licensed under CC BY-SA 4.0.",
+                     destination: URL(string: "https://creativecommons.org/licenses/by-sa/4.0/")!)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

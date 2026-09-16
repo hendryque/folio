@@ -51,9 +51,28 @@ enum ArticleHTML {
         <body data-theme="\(themeName)">
         \(header)
         \(typographedBody)
+        \(renderColophon(title: title, language: language))
         </body>
         </html>
         """
+    }
+
+    /// CC BY-SA wants attribution at the point of use, not only in About:
+    /// name the source and license and link the article and its authors.
+    private static func renderColophon(title: String, language: String) -> String {
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove(charactersIn: "/?#")
+        let escaped = title.replacingOccurrences(of: " ", with: "_")
+            .addingPercentEncoding(withAllowedCharacters: allowed) ?? title
+        let articleURL = "https://\(language).wikipedia.org/wiki/\(escaped)"
+        let historyURL = "https://\(language).wikipedia.org/w/index.php?title=\(escaped)&action=history"
+        let licenseURL = language == "de"
+            ? "https://creativecommons.org/licenses/by-sa/4.0/deed.de"
+            : "https://creativecommons.org/licenses/by-sa/4.0/"
+        let text = language == "de"
+            ? "Text: <a href=\"\(articleURL)\">Wikipedia</a>, Lizenz <a href=\"\(licenseURL)\">CC BY-SA 4.0</a> · <a href=\"\(historyURL)\">Autorinnen und Autoren</a>"
+            : "Text: <a href=\"\(articleURL)\">Wikipedia</a>, licensed <a href=\"\(licenseURL)\">CC BY-SA 4.0</a> · <a href=\"\(historyURL)\">article contributors</a>"
+        return "<footer class=\"folio-colophon\">\(text)</footer>"
     }
 
     private static func renderHeader(title: String, heroImageURL: URL?, focalPoint: CGPoint?) -> String {
@@ -100,7 +119,7 @@ enum ArticleHTML {
     }
 
     private static func loadCSS() -> String {
-        let names = ["article", "theme-light", "theme-sepia", "theme-dark"]
+        let names = ["article", "theme-light", "theme-sepia", "theme-dark", "theme-debug"]
         let bundled = names.compactMap { resource(name: $0, ext: "css") }.joined(separator: "\n\n")
         return BundledFonts.articleCSS + "\n\n" + bundled
     }

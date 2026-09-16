@@ -50,6 +50,9 @@ targets:
           - EBGaramond-Bold.otf
           - EBGaramond-MediumItalic.otf
           - EBGaramond-BoldItalic.otf
+          - BarlowSemiCondensed-Regular.ttf
+          - BarlowSemiCondensed-Medium.ttf
+          - BarlowSemiCondensed-Bold.ttf
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: NO
         UIApplicationSupportsIndirectInputEvents: YES
