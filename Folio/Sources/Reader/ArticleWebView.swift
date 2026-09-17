@@ -136,15 +136,7 @@ struct ArticleWebView: UIViewRepresentable {
             // Same document — preload the target theme's faces before flipping
             // the attribute, so a live theme change cannot expose fallback type.
             let titleScale = min(max(fontScale, 0.85), 1.2)
-            let fontQueries = theme == .debug
-                ? ["400 16px \"Barlow Semi Condensed\"", "700 16px \"Barlow Semi Condensed\""]
-                : [
-                    "400 16px \"EB Garamond\"",
-                    "italic 400 16px \"EB Garamond\"",
-                    "700 16px \"EB Garamond\"",
-                    "italic 700 16px \"EB Garamond\""
-                ]
-            let queriesJSON = Self.javaScriptJSON(fontQueries)
+            let queriesJSON = Self.javaScriptJSON(theme.webFontQueries)
             let js = """
             (function () {
                 const request = (window.__folioThemeRequest || 0) + 1;

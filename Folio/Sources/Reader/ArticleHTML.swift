@@ -41,9 +41,13 @@ enum ArticleHTML {
 
         let header = renderHeader(title: title, heroImageURL: heroImageURL, focalPoint: heroFocalPoint)
 
+        // painted.js waits on exactly these before signalling first paint.
+        let fontQueriesJSON = (try? JSONEncoder().encode(theme.webFontQueries))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+
         return """
         <!DOCTYPE html>
-        <html lang="\(htmlEscape(language))" style="--folio-font-scale: \(scale); --folio-title-scale: \(titleScale);">
+        <html lang="\(htmlEscape(language))" data-font-queries="\(htmlEscape(fontQueriesJSON))" style="--folio-font-scale: \(scale); --folio-title-scale: \(titleScale);">
         <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">

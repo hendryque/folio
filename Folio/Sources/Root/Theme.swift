@@ -66,6 +66,23 @@ enum Theme: String, CaseIterable, Identifiable, Sendable {
     var titleFontName: String {
         self == .debug ? "BarlowSemiCondensed-Bold" : "EBGaramond-Italic"
     }
+    /// Faces the reader waits for before revealing. Gating on these rather than
+    /// on `document.fonts.ready` keeps the reveal off the load event, which
+    /// waits for every image too.
+    var webFontQueries: [String] {
+        let body = [
+            "400 16px \"EB Garamond\"",
+            "italic 400 16px \"EB Garamond\"",
+            "700 16px \"EB Garamond\"",
+            "italic 700 16px \"EB Garamond\""
+        ]
+        guard self == .debug else { return body }
+        return body + [
+            "400 16px \"Barlow Semi Condensed\"",
+            "700 16px \"Barlow Semi Condensed\""
+        ]
+    }
+
     var bodySize: Double { 17 }
     var bodyLineHeight: Double { 1.52 }
     var heroTitleSize: Double { self == .debug ? 42 : 44.2 }
