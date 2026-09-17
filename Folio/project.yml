@@ -74,3 +74,17 @@ targets:
         PRODUCT_NAME: Folio
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+  FolioTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: Tests
+        type: group
+    dependencies:
+      - target: Folio
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.scott.folio.tests
+        GENERATE_INFOPLIST_FILE: YES

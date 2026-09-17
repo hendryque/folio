@@ -42,9 +42,10 @@ Wikipedia's geosearch endpoint and nowhere further.
 The type follows the reading situation. Today and Nearby are scanning
 surfaces, so titles there use EB Garamond Medium, italic on the grid, and
 each Today tile darkens its image only as much as that image's measured
-brightness requires. The reader sets 17px at 1.52 line height with the
-measure capped at 26rem, about 66 characters. Prose uses old-style figures;
-tables and infoboxes keep lining tabular figures so columns align. The
+brightness requires. The reader sets 18px at 1.52 line height, sized by
+x-height rather than by the nominal number, with the measure capped at 26rem,
+which holds about 63 characters at any reader size. Prose uses old-style
+figures; tables and infoboxes keep lining tabular figures so columns align. The
 display title scales independently and stops at 120%, while body text keeps
 the full setting range. Folio restores each article's document language
 before layout and applies locale-aware punctuation, so English and German
@@ -63,6 +64,10 @@ open Folio.xcodeproj
 Change the development team to your own, then build and run. Targets iOS 18,
 iPhone first. Sideloads fine with a free Apple ID. That is how I run it.
 
+Tests run with `xcodebuild test -scheme Folio -destination 'platform=iOS
+Simulator,name=iPhone 16'`. They cover the reader document's invariants rather
+than the UI.
+
 If you plan to commit, enable the repo's hooks once with
 `git config core.hooksPath .githooks`. They run [gitleaks](https://github.com/gitleaks/gitleaks)
 over staged changes, commit messages, and outgoing pushes.
@@ -70,7 +75,7 @@ over staged changes, commit messages, and outgoing pushes.
 ## Status
 
 Alpha. I use it daily and fix whatever annoys me, roughly in that order.
-Known gaps: no tests, only English and German Wikipedia, iPad launches but
+Known gaps: thin test coverage, only English and German Wikipedia, iPad launches but
 has had no attention, and offline reading covers only what you have already
 opened. Issues and pull requests are welcome. I can't promise a roadmap.
 

@@ -82,7 +82,7 @@ struct ArticleLoadingPreview: View {
 
     @State private var showSlowIndicator = false
 
-    private var readerMaxOuterWidth: CGFloat { CGFloat(26 * 17 * fontScale + 40) }
+    private var readerMaxOuterWidth: CGFloat { CGFloat(theme.measureRem * theme.bodySize * fontScale + 40) }
 
     private var displayTitle: String {
         summary.title.replacingOccurrences(of: "_", with: " ")
@@ -95,7 +95,7 @@ struct ArticleLoadingPreview: View {
     private var heroTitleSize: Double { theme.heroTitleSize * titleScale }
     private var textOnlyTitleSize: Double { theme.textOnlyTitleSize * titleScale }
 
-    /// article.css body: 17px at line-height 1.52. SwiftUI's lineSpacing is
+    /// article.css body, whose size and leading come from Theme. SwiftUI's lineSpacing is
     /// *extra* points on top of the font's natural leading — subtract it, or
     /// the preview text sits visibly tighter than the rendered article and
     /// the cross-fade reads as a jump.

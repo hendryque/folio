@@ -1,4 +1,5 @@
 :root {
+    --folio-serif: "EB Garamond", "New York", ui-serif, Georgia, "Times New Roman", serif;
     --folio-font-scale: 1.0;
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
@@ -9,9 +10,9 @@ html, body {
     padding: 0;
     background: var(--folio-bg);
     color: var(--folio-fg);
-    font-family: "EB Garamond", "New York", ui-serif, Georgia, "Times New Roman", serif;
-    font-size: calc(17px * var(--folio-font-scale, 1.0));
-    line-height: 1.52;
+    font-family: var(--folio-serif);
+    font-size: calc(var(--folio-body-size, 18px) * var(--folio-font-scale, 1.0));
+    line-height: var(--folio-body-leading, 1.46);
     -webkit-font-smoothing: antialiased;
     /* EB Garamond defaults to lining figures, which read as capitals inside
        lowercase prose. Old-style sit on the x-height and belong in running
@@ -23,13 +24,13 @@ html, body {
 }
 
 body {
-    max-width: 26rem;
+    max-width: var(--folio-measure, 26rem);
     margin: 0 auto;
     padding: 16px 20px 96px 20px;
 }
 
 h1, h2, h3, h4, h5, h6 {
-    font-family: "EB Garamond", "New York", ui-serif, Georgia, serif;
+    font-family: var(--folio-serif);
     font-weight: 700;
     letter-spacing: -0.01em;
     line-height: 1.22;
@@ -48,7 +49,7 @@ h4 { font-size: 1.08em; }
 
 /* Exactly half a line (1.52em/2) so the paragraph gap stays a clean
    fraction of the line rather than an arbitrary value. */
-p { margin: 0 0 0.76em 0; }
+p { margin: 0 0 calc(var(--folio-body-leading, 1.52) * 0.5em) 0; }
 
 /* V for Wikipedia's reader has no drop cap — the visual hero is the title overlaid on the
    image (see .folio-header below). Body just begins with Wikipedia's bolded subject. */
@@ -96,7 +97,7 @@ h1, h2, h3, h4, h5, h6, .folio-title {
     position: relative;
     z-index: 1;
     margin: 0 20px 20px 20px;
-    font-family: "EB Garamond", "New York", ui-serif, Georgia, serif;
+    font-family: var(--folio-serif);
     font-style: italic;
     font-weight: 400;
     font-size: calc(44.2px * var(--folio-title-scale, 1.0));
@@ -316,7 +317,7 @@ section[data-mw-section-id] {
 }
 .infobox caption {
     font-weight: 700;
-    font-family: "EB Garamond", "New York", ui-serif, Georgia, serif;
+    font-family: var(--folio-serif);
     font-size: 1.1em;
     padding: 0 0 8px 0;
     text-align: left;
@@ -353,7 +354,7 @@ section[data-mw-section-id] {
 .infobox th.infobox-header,
 .infobox .infobox-header {
     text-align: left;
-    font-family: "EB Garamond", "New York", ui-serif, serif;
+    font-family: var(--folio-serif);
     font-weight: 700;
     font-style: normal;
     font-size: 1em;

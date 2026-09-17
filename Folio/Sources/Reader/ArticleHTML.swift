@@ -1,6 +1,16 @@
 import Foundation
 
 enum ArticleHTML {
+
+    /// An article and the URL it must be loaded with. The two travel together
+    /// because the document has to load from the reader's own origin while its
+    /// `<base href>` points at Wikipedia; loading it with the article URL would
+    /// silently stop every bundled font from resolving.
+    struct Document {
+        let html: String
+        let baseURL: URL
+    }
+
     /// Wraps Wikipedia's `mobile-html` body with Folio's own `<head>` (themed CSS, viewport meta),
     /// strips conflicting Wikipedia stylesheet links and the document chrome, and marks the lead
     /// paragraph for the drop-cap rule. Optionally runs the body text through Typographizer for
@@ -14,7 +24,7 @@ enum ArticleHTML {
         articleURL: URL,
         heroImageURL: URL?,
         heroFocalPoint: CGPoint?
-    ) -> String {
+    ) -> Document {
         var html = rawHTML
 
         // Drop Wikipedia's stylesheets so they don't fight our CSS
@@ -45,9 +55,16 @@ enum ArticleHTML {
         let fontQueriesJSON = (try? JSONEncoder().encode(theme.webFontQueries))
             .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
 
-        return """
+        // article.css reads the metrics from here so ArticleLoadingPreview,
+        // which mirrors them, cannot drift out of step with the stylesheet.
+        let metrics = String(
+            format: "--folio-body-size: %.1fpx; --folio-body-leading: %.3f; --folio-measure: %.0frem;",
+            theme.bodySize, theme.bodyLineHeight, theme.measureRem
+        )
+
+        let rendered = """
         <!DOCTYPE html>
-        <html lang="\(htmlEscape(language))" data-font-queries="\(htmlEscape(fontQueriesJSON))" style="--folio-font-scale: \(scale); --folio-title-scale: \(titleScale);">
+        <html lang="\(htmlEscape(language))" data-font-queries="\(htmlEscape(fontQueriesJSON))" style="\(metrics) --folio-font-scale: \(scale); --folio-title-scale: \(titleScale);">
         <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -61,6 +78,7 @@ enum ArticleHTML {
         </body>
         </html>
         """
+        return Document(html: rendered, baseURL: ReaderSchemeHandler.documentURL)
     }
 
     /// CC BY-SA wants attribution at the point of use, not only in About:

@@ -66,7 +66,7 @@ struct ArticleWebView: UIViewRepresentable {
         // for cross-load state and this eliminates a fingerprinting / tracking
         // surface from malicious article content.
         configuration.websiteDataStore = .nonPersistent()
-        configuration.setURLSchemeHandler(FontURLSchemeHandler(), forURLScheme: FontURLSchemeHandler.scheme)
+        configuration.setURLSchemeHandler(ReaderSchemeHandler(), forURLScheme: ReaderSchemeHandler.scheme)
 
         let controller = WKUserContentController()
         for source in Self.userScriptSources {
@@ -121,7 +121,7 @@ struct ArticleWebView: UIViewRepresentable {
         if context.coordinator.lastHash != stableHash {
             context.coordinator.lastHash = stableHash
             context.coordinator.hasPainted = false
-            let composed = ArticleHTML.render(
+            let document = ArticleHTML.render(
                 rawHTML: html,
                 theme: theme,
                 fontScale: fontScale,
@@ -131,7 +131,7 @@ struct ArticleWebView: UIViewRepresentable {
                 heroImageURL: heroImageURL,
                 heroFocalPoint: heroFocalPoint
             )
-            webView.loadHTMLString(composed, baseURL: FontURLSchemeHandler.documentURL)
+            webView.loadHTMLString(document.html, baseURL: document.baseURL)
         } else {
             // Same document — preload the target theme's faces before flipping
             // the attribute, so a live theme change cannot expose fallback type.
@@ -321,7 +321,7 @@ struct ArticleWebView: UIViewRepresentable {
             // about:. Blocks javascript:, data:, file: redirects from
             // malicious article content.
             let scheme = url.scheme?.lowercased()
-            if scheme == "https" || scheme == FontURLSchemeHandler.scheme || scheme == "about" {
+            if scheme == "https" || scheme == ReaderSchemeHandler.scheme || scheme == "about" {
                 return .allow
             }
             return .cancel

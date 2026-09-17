@@ -1,57 +1,51 @@
 import Foundation
 
-/// CSS `@font-face` declarations for EB Garamond. Bytes are streamed by
-/// `FontURLSchemeHandler` over the `folio-font://` scheme — no base64.
+/// The faces the reader WebView paints with, declared once. The `@font-face`
+/// CSS, the scheme handler's allowlist and the per-theme preload queries are
+/// all derived from this table, so a new face cannot be half-added.
 enum BundledFonts {
-    static let articleCSS: String = """
-    @font-face {
-        font-family: "EB Garamond";
-        src: url("\(FontURLSchemeHandler.origin)/EBGaramond-Regular.otf") format("opentype");
-        font-weight: 400;
-        font-style: normal;
-        font-display: block;
+
+    struct Face: Sendable {
+        let family: String
+        let file: String
+        let ext: String
+        let weight: Int
+        let isItalic: Bool
+
+        var cssFormat: String { ext == "otf" ? "opentype" : "truetype" }
+
+        /// `document.fonts.load` shorthand. The size is arbitrary — matching is
+        /// by family, weight and style — but the shorthand requires one.
+        var loadQuery: String {
+            "\(isItalic ? "italic " : "")\(weight) 16px \"\(family)\""
+        }
     }
-    @font-face {
-        font-family: "EB Garamond";
-        src: url("\(FontURLSchemeHandler.origin)/EBGaramond-Italic.otf") format("opentype");
-        font-weight: 400;
-        font-style: italic;
-        font-display: block;
+
+    static let garamond = "EB Garamond"
+    static let barlow = "Barlow Semi Condensed"
+
+    static let faces: [Face] = [
+        Face(family: garamond, file: "EBGaramond-Regular", ext: "otf", weight: 400, isItalic: false),
+        Face(family: garamond, file: "EBGaramond-Italic", ext: "otf", weight: 400, isItalic: true),
+        Face(family: garamond, file: "EBGaramond-Bold", ext: "otf", weight: 700, isItalic: false),
+        Face(family: garamond, file: "EBGaramond-BoldItalic", ext: "otf", weight: 700, isItalic: true),
+        Face(family: barlow, file: "BarlowSemiCondensed-Regular", ext: "ttf", weight: 400, isItalic: false),
+        Face(family: barlow, file: "BarlowSemiCondensed-Bold", ext: "ttf", weight: 700, isItalic: false)
+    ]
+
+    static func queries(forFamilies families: [String]) -> [String] {
+        faces.filter { families.contains($0.family) }.map(\.loadQuery)
     }
-    @font-face {
-        font-family: "EB Garamond";
-        src: url("\(FontURLSchemeHandler.origin)/EBGaramond-Bold.otf") format("opentype");
-        font-weight: 700;
-        font-style: normal;
-        font-display: block;
-    }
-    @font-face {
-        font-family: "EB Garamond";
-        src: url("\(FontURLSchemeHandler.origin)/EBGaramond-BoldItalic.otf") format("opentype");
-        font-weight: 700;
-        font-style: italic;
-        font-display: block;
-    }
+
+    static let articleCSS: String = faces.map { face in
+        """
         @font-face {
-        font-family: "Barlow Semi Condensed";
-        src: url("\(FontURLSchemeHandler.origin)/BarlowSemiCondensed-Regular.ttf") format("truetype");
-        font-weight: 400;
-        font-style: normal;
-        font-display: block;
-    }
-    @font-face {
-        font-family: "Barlow Semi Condensed";
-        src: url("\(FontURLSchemeHandler.origin)/BarlowSemiCondensed-Medium.ttf") format("truetype");
-        font-weight: 500;
-        font-style: normal;
-        font-display: block;
-    }
-    @font-face {
-        font-family: "Barlow Semi Condensed";
-        src: url("\(FontURLSchemeHandler.origin)/BarlowSemiCondensed-Bold.ttf") format("truetype");
-        font-weight: 700;
-        font-style: normal;
-        font-display: block;
-    }
-    """
+            font-family: "\(face.family)";
+            src: url("\(ReaderSchemeHandler.fontsPath)/\(face.file).\(face.ext)") format("\(face.cssFormat)");
+            font-weight: \(face.weight);
+            font-style: \(face.isItalic ? "italic" : "normal");
+            font-display: block;
+        }
+        """
+    }.joined(separator: "\n")
 }

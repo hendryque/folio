@@ -66,25 +66,30 @@ enum Theme: String, CaseIterable, Identifiable, Sendable {
     var titleFontName: String {
         self == .debug ? "BarlowSemiCondensed-Bold" : "EBGaramond-Italic"
     }
+    /// De:Bug sets its headings in the grotesque; every theme sets prose in
+    /// the garalde.
+    var webFontFamilies: [String] {
+        self == .debug ? [BundledFonts.garamond, BundledFonts.barlow] : [BundledFonts.garamond]
+    }
+
     /// Faces the reader waits for before revealing. Gating on these rather than
     /// on `document.fonts.ready` keeps the reveal off the load event, which
     /// waits for every image too.
-    var webFontQueries: [String] {
-        let body = [
-            "400 16px \"EB Garamond\"",
-            "italic 400 16px \"EB Garamond\"",
-            "700 16px \"EB Garamond\"",
-            "italic 700 16px \"EB Garamond\""
-        ]
-        guard self == .debug else { return body }
-        return body + [
-            "400 16px \"Barlow Semi Condensed\"",
-            "700 16px \"Barlow Semi Condensed\""
-        ]
-    }
+    var webFontQueries: [String] { BundledFonts.queries(forFamilies: webFontFamilies) }
 
-    var bodySize: Double { 17 }
+    /// 18px, not the 17 that was set by eye while New York was really
+    /// rendering: EB Garamond's x-height is 0.409em against New York's 0.487,
+    /// so the same nominal size reads 18% smaller.
+    var bodySize: Double { 18 }
+
+    /// Keeps the interlinear channel a little over one x-height, the principle
+    /// in docs/typography.md: channel is line-height minus real ink, 1.085em
+    /// for this face, so 1.52 gives 1.06 x-heights.
     var bodyLineHeight: Double { 1.52 }
+
+    /// A cap in rem holds a fixed character count per face, 62.8 here, at any
+    /// reader size. Only binds on iPad.
+    var measureRem: Double { 26 }
     var heroTitleSize: Double { self == .debug ? 42 : 44.2 }
     var textOnlyTitleSize: Double { self == .debug ? 38 : 40.8 }
 }

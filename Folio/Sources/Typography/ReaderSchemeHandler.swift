@@ -1,31 +1,22 @@
 import Foundation
 @preconcurrency import WebKit
 
-/// Streams bundled OTF files to the WKWebView on demand via the `folio-font://` scheme.
-/// CSS references each face as `folio-font://fonts/EBGaramond-Italic.otf` and WebKit asks
-/// us for the bytes. Saves ~2 MB of base64 per article render and lets the OS cache the
-/// fonts across loads.
-final class FontURLSchemeHandler: NSObject, WKURLSchemeHandler {
+/// Serves the reader's own origin, `folio://reader`. The article document loads
+/// from here, not from the Wikipedia URL, because WebKit refuses a custom-scheme
+/// subresource from an https origin and the fonts would never load.
+final class ReaderSchemeHandler: NSObject, WKURLSchemeHandler {
 
-    nonisolated static let scheme = "folio-font"
-    nonisolated static let host = "fonts"
+    nonisolated static let scheme = "folio"
+    nonisolated static let host = "reader"
     nonisolated static let origin = "\(scheme)://\(host)"
     nonisolated static let documentURL = URL(string: "\(origin)/article.html")!
+    nonisolated static let fontsDirectory = "fonts"
+    nonisolated static let fontsPath = "\(origin)/\(fontsDirectory)"
 
-    /// Explicit allowlist of font baseNames we'll serve. Without this, any
-    /// `folio-font://anything/AnyOtfInBundle.otf` URL inside article CSS we
-    /// don't control could read any `.otf` we bundle. Adding the wildcard
-    /// CORS header on top would have made every bundled OTF cross-origin
-    /// readable from any iframe / SVG too.
-    private static let allowedFonts: Set<String> = [
-        "EBGaramond-Regular",
-        "EBGaramond-Italic",
-        "EBGaramond-Bold",
-        "EBGaramond-BoldItalic",
-        "BarlowSemiCondensed-Regular",
-        "BarlowSemiCondensed-Medium",
-        "BarlowSemiCondensed-Bold"
-    ]
+    /// Derived from the one face table, so the CSS can never name a face the
+    /// handler won't serve. Without it, any `folio://reader/fonts/…` URL in
+    /// article CSS we don't control could read any font we bundle.
+    private static let allowedFonts: Set<String> = Set(BundledFonts.faces.map(\.file))
 
     func webView(_ webView: WKWebView, start urlSchemeTask: any WKURLSchemeTask) {
         guard let url = urlSchemeTask.request.url else {
@@ -35,10 +26,12 @@ final class FontURLSchemeHandler: NSObject, WKURLSchemeHandler {
 
         let fileName = url.lastPathComponent
         let baseName = (fileName as NSString).deletingPathExtension
-
         let ext = (fileName as NSString).pathExtension.lowercased()
+        let directory = url.deletingLastPathComponent().lastPathComponent
+
         guard
             url.host?.lowercased() == Self.host,
+            directory == Self.fontsDirectory,
             Self.allowedFonts.contains(baseName),
             ["otf", "ttf"].contains(ext),
             let fontURL = Bundle.main.url(forResource: baseName, withExtension: ext),

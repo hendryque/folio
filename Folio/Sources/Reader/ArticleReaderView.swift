@@ -202,7 +202,9 @@ struct ArticleReaderView: View {
             ?? URL(string: "https://wikipedia.org")!
     }
 
-    private var shareURL: URL { articleURL }
+    /// The summary's URL is the canonical one, so a redirect such as "NYC"
+    /// shares as the article it actually resolves to.
+    private var shareURL: URL { summary?.pageURL ?? articleURL }
 
     private var isBookmarked: Bool {
         bookmarks.contains { $0.title == title && $0.language == language }
