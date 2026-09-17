@@ -50,6 +50,10 @@ targets:
           - EBGaramond-Bold.otf
           - EBGaramond-MediumItalic.otf
           - EBGaramond-BoldItalic.otf
+          - Besley-Regular.ttf
+          - Besley-Italic.ttf
+          - Besley-Bold.ttf
+          - Besley-BoldItalic.ttf
           - BarlowSemiCondensed-Regular.ttf
           - BarlowSemiCondensed-Medium.ttf
           - BarlowSemiCondensed-Bold.ttf

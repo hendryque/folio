@@ -66,7 +66,8 @@ struct ReaderDocumentTests {
     @Test("Every theme's leading keeps the channel near one x-height")
     func leadingKeepsTheChannelOpen() {
         let face: [String: (ink: Double, xHeight: Double)] = [
-            "EBGaramond-Regular": (1.085, 0.409)
+            "EBGaramond-Regular": (1.085, 0.409),
+            "Besley-Regular": (1.204, 0.520)
         ]
         for theme in Theme.allCases {
             guard let m = face[theme.bodyFontName] else {

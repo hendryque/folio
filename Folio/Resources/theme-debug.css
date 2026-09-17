@@ -13,8 +13,12 @@
     --folio-code-bg: rgba(28, 27, 25, 0.06);
 }
 
-/* Display type is the costume that works: Barlow Semi Condensed standing in
-   for Fakt. The body face stays Garamond for now; see docs/typography.md. */
+/* Besley stands in for Sentinel in the prose, Barlow Semi Condensed for Fakt
+   on the display type. Sizes and leading travel with the face, in Theme. */
+[data-theme="debug"], [data-theme="debug"] body {
+    --folio-serif: "Besley", "New York", ui-serif, Georgia, serif;
+}
+
 body[data-theme="debug"] h1,
 body[data-theme="debug"] h2,
 body[data-theme="debug"] h3,

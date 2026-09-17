@@ -61,15 +61,15 @@ enum Theme: String, CaseIterable, Identifiable, Sendable {
 
     /// Reader faces and metrics, mirrored by ArticleLoadingPreview. A theme
     /// may swap the display face, so the numbers travel with it.
-    var bodyFontName: String { "EBGaramond-Regular" }
-    var bodyBoldFontName: String { "EBGaramond-Bold" }
+    var bodyFontName: String { self == .debug ? "Besley-Regular" : "EBGaramond-Regular" }
+    var bodyBoldFontName: String { self == .debug ? "Besley-Bold" : "EBGaramond-Bold" }
     var titleFontName: String {
         self == .debug ? "BarlowSemiCondensed-Bold" : "EBGaramond-Italic"
     }
-    /// De:Bug sets its headings in the grotesque; every theme sets prose in
-    /// the garalde.
+    /// De:Bug is a costume: Besley for prose standing in for Sentinel, Barlow
+    /// for display standing in for Fakt. Every other theme sets the garalde.
     var webFontFamilies: [String] {
-        self == .debug ? [BundledFonts.garamond, BundledFonts.barlow] : [BundledFonts.garamond]
+        self == .debug ? [BundledFonts.besley, BundledFonts.barlow] : [BundledFonts.garamond]
     }
 
     /// Faces the reader waits for before revealing. Gating on these rather than
@@ -77,19 +77,19 @@ enum Theme: String, CaseIterable, Identifiable, Sendable {
     /// waits for every image too.
     var webFontQueries: [String] { BundledFonts.queries(forFamilies: webFontFamilies) }
 
-    /// 18px, not the 17 that was set by eye while New York was really
-    /// rendering: EB Garamond's x-height is 0.409em against New York's 0.487,
-    /// so the same nominal size reads 18% smaller.
-    var bodySize: Double { 18 }
+    /// Sized by x-height, not by nominal px, so themes read the same size:
+    /// Garamond's is 0.409em against Besley's 0.520, so 14px of the slab
+    /// matches 18px of the garalde.
+    var bodySize: Double { self == .debug ? 14 : 18 }
 
-    /// Keeps the interlinear channel a little over one x-height, the principle
-    /// in docs/typography.md: channel is line-height minus real ink, 1.085em
-    /// for this face, so 1.52 gives 1.06 x-heights.
-    var bodyLineHeight: Double { 1.52 }
+    /// Set so the interlinear channel lands a little over one x-height, the
+    /// principle in docs/typography.md. Besley needs more because its ink is
+    /// 1.204em deep against Garamond's 1.085em.
+    var bodyLineHeight: Double { self == .debug ? 1.75 : 1.52 }
 
-    /// A cap in rem holds a fixed character count per face, 62.8 here, at any
-    /// reader size. Only binds on iPad.
-    var measureRem: Double { 26 }
+    /// The cap in rem holds a fixed character count per face, so the wider
+    /// slab needs a wider one to reach the same measure. Only binds on iPad.
+    var measureRem: Double { self == .debug ? 34 : 26 }
     var heroTitleSize: Double { self == .debug ? 42 : 44.2 }
     var textOnlyTitleSize: Double { self == .debug ? 38 : 40.8 }
 }

@@ -24,7 +24,7 @@ personal recreation of the parts I used every day. It is an homage, not a replac
   stable crops that do not reposition after appearing
 - Reader: EB Garamond at a capped reading measure, locale-aware typography and
   hyphenation, on-device face-aware hero crops, light, sepia and dark themes
-  plus a De:Bug tribute theme, pinch
+  plus a De:Bug tribute theme that swaps the prose face too, pinch
   to change text size, table of contents, and image gallery. A lead image
   promoted to the hero is not repeated in the article body, and any image
   opens full screen with its caption, the hero included.
@@ -87,6 +87,10 @@ opened. Issues and pull requests are welcome. I can't promise a roadmap.
   Rausch, vendored under its MIT license.
 - [EB Garamond](https://github.com/octaviopardo/EBGaramond12) by Georg Duffner
   and Octavio Pardo, bundled under the SIL Open Font License 1.1.
+- [Besley](https://github.com/indestructible-type/Besley) by Indestructible
+  Type and [Barlow](https://github.com/jpt/barlow) by Jeremy Tribby, bundled
+  under the SIL Open Font License 1.1. They stand in for Sentinel and Fakt in
+  the De:Bug theme, which is a tribute and not affiliated with the magazine.
 - All content comes from [Wikipedia](https://www.wikipedia.org) via the
   Wikimedia APIs and is licensed CC BY-SA. Folio is not affiliated with the
   Wikimedia Foundation.
