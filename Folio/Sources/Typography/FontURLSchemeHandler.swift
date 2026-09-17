@@ -7,7 +7,10 @@ import Foundation
 /// fonts across loads.
 final class FontURLSchemeHandler: NSObject, WKURLSchemeHandler {
 
-    static let scheme = "folio-font"
+    nonisolated static let scheme = "folio-font"
+    nonisolated static let host = "fonts"
+    nonisolated static let origin = "\(scheme)://\(host)"
+    nonisolated static let documentURL = URL(string: "\(origin)/article.html")!
 
     /// Explicit allowlist of font baseNames we'll serve. Without this, any
     /// `folio-font://anything/AnyOtfInBundle.otf` URL inside article CSS we
@@ -35,6 +38,7 @@ final class FontURLSchemeHandler: NSObject, WKURLSchemeHandler {
 
         let ext = (fileName as NSString).pathExtension.lowercased()
         guard
+            url.host?.lowercased() == Self.host,
             Self.allowedFonts.contains(baseName),
             ["otf", "ttf"].contains(ext),
             let fontURL = Bundle.main.url(forResource: baseName, withExtension: ext),

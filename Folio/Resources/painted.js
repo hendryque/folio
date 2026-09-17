@@ -1,9 +1,12 @@
-// didFinish waits for every subresource; the article is visually complete
-// long before that. Signal after two frames, once the first layout is on
-// screen, so the reader reveals at first paint instead.
+// Reveal only after the faces used by the initial theme have settled. Without
+// this gate the preview can cross-fade into fallback type and the article then
+// reflows when the bundled fonts arrive.
 (function () {
     function signal() {
         try { window.webkit.messageHandlers.painted.postMessage(1); } catch (e) {}
     }
-    requestAnimationFrame(function () { requestAnimationFrame(signal); });
+    function afterLayout() {
+        requestAnimationFrame(function () { requestAnimationFrame(signal); });
+    }
+    document.fonts.ready.then(afterLayout, afterLayout);
 })();

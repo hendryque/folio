@@ -11,6 +11,7 @@ enum ArticleHTML {
         fontScale: Double,
         language: String,
         title: String,
+        articleURL: URL,
         heroImageURL: URL?,
         heroFocalPoint: CGPoint?
     ) -> String {
@@ -46,12 +47,13 @@ enum ArticleHTML {
         <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <base href="\(htmlEscape(articleURL.absoluteString))">
         <style>\(css)</style>
         </head>
         <body data-theme="\(themeName)">
         \(header)
         \(typographedBody)
-        \(renderColophon(title: title, language: language))
+        \(renderColophon(title: title, language: language, articleURL: articleURL))
         </body>
         </html>
         """
@@ -59,19 +61,15 @@ enum ArticleHTML {
 
     /// CC BY-SA wants attribution at the point of use, not only in About:
     /// name the source and license and link the article and its authors.
-    private static func renderColophon(title: String, language: String) -> String {
-        var allowed = CharacterSet.urlPathAllowed
-        allowed.remove(charactersIn: "/?#")
-        let escaped = title.replacingOccurrences(of: " ", with: "_")
-            .addingPercentEncoding(withAllowedCharacters: allowed) ?? title
-        let articleURL = "https://\(language).wikipedia.org/wiki/\(escaped)"
-        let historyURL = "https://\(language).wikipedia.org/w/index.php?title=\(escaped)&action=history"
+    private static func renderColophon(title: String, language: String, articleURL: URL) -> String {
+        let historyURL = WikipediaEndpoint.historyURL(title: title, language: language)?.absoluteString
+            ?? articleURL.absoluteString
         let licenseURL = language == "de"
             ? "https://creativecommons.org/licenses/by-sa/4.0/deed.de"
             : "https://creativecommons.org/licenses/by-sa/4.0/"
         let text = language == "de"
-            ? "Text: <a href=\"\(articleURL)\">Wikipedia</a>, Lizenz <a href=\"\(licenseURL)\">CC BY-SA 4.0</a> · <a href=\"\(historyURL)\">Autorinnen und Autoren</a>"
-            : "Text: <a href=\"\(articleURL)\">Wikipedia</a>, licensed <a href=\"\(licenseURL)\">CC BY-SA 4.0</a> · <a href=\"\(historyURL)\">article contributors</a>"
+            ? "Text: <a href=\"\(htmlEscape(articleURL.absoluteString))\">Wikipedia</a>, Lizenz <a href=\"\(licenseURL)\">CC BY-SA 4.0</a> · <a href=\"\(htmlEscape(historyURL))\">Autorinnen und Autoren</a>"
+            : "Text: <a href=\"\(htmlEscape(articleURL.absoluteString))\">Wikipedia</a>, licensed <a href=\"\(licenseURL)\">CC BY-SA 4.0</a> · <a href=\"\(htmlEscape(historyURL))\">article contributors</a>"
         return "<footer class=\"folio-colophon\">\(text)</footer>"
     }
 

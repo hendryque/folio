@@ -10,7 +10,7 @@ struct ArticleSection: Identifiable, Hashable, Sendable {
 
 struct ArticleWebView: UIViewRepresentable {
     let html: String
-    let baseURL: URL
+    let articleURL: URL
     let language: String
     let currentTitle: String
     let heroImageURL: URL?
@@ -110,6 +110,7 @@ struct ArticleWebView: UIViewRepresentable {
         hasher.combine(html)
         hasher.combine(language)
         hasher.combine(currentTitle)
+        hasher.combine(articleURL.absoluteString)
         hasher.combine(heroImageURL?.absoluteString)
         if let focal = heroFocalPoint {
             hasher.combine(focal.x)
@@ -126,17 +127,38 @@ struct ArticleWebView: UIViewRepresentable {
                 fontScale: fontScale,
                 language: language,
                 title: currentTitle,
+                articleURL: articleURL,
                 heroImageURL: heroImageURL,
                 heroFocalPoint: heroFocalPoint
             )
-            webView.loadHTMLString(composed, baseURL: baseURL)
+            webView.loadHTMLString(composed, baseURL: FontURLSchemeHandler.documentURL)
         } else {
-            // Same document — flip theme + scale via JS, no reload, no flash.
+            // Same document — preload the target theme's faces before flipping
+            // the attribute, so a live theme change cannot expose fallback type.
             let titleScale = min(max(fontScale, 0.85), 1.2)
+            let fontQueries = theme == .debug
+                ? ["400 16px \"Barlow Semi Condensed\"", "700 16px \"Barlow Semi Condensed\""]
+                : [
+                    "400 16px \"EB Garamond\"",
+                    "italic 400 16px \"EB Garamond\"",
+                    "700 16px \"EB Garamond\"",
+                    "italic 700 16px \"EB Garamond\""
+                ]
+            let queriesJSON = Self.javaScriptJSON(fontQueries)
             let js = """
-            document.body && document.body.setAttribute('data-theme', '\(theme.cssDataTheme)');
-            document.documentElement && document.documentElement.style.setProperty('--folio-font-scale', '\(fontScale)');
-            document.documentElement && document.documentElement.style.setProperty('--folio-title-scale', '\(titleScale)');
+            (function () {
+                const request = (window.__folioThemeRequest || 0) + 1;
+                window.__folioThemeRequest = request;
+                const queries = \(queriesJSON);
+                Promise.all(queries.map(query => document.fonts.load(query)))
+                    .catch(function () {})
+                    .then(function () {
+                        if (window.__folioThemeRequest !== request) return;
+                        document.body && document.body.setAttribute('data-theme', '\(theme.cssDataTheme)');
+                        document.documentElement && document.documentElement.style.setProperty('--folio-font-scale', '\(fontScale)');
+                        document.documentElement && document.documentElement.style.setProperty('--folio-title-scale', '\(titleScale)');
+                    });
+            })();
             """
             webView.evaluateJavaScript(js)
         }
@@ -146,11 +168,15 @@ struct ArticleWebView: UIViewRepresentable {
             // other special character are escaped to a valid JS string literal.
             // Anchors originate from article HTML and section IDs (untrusted) —
             // ad-hoc quote escaping is a JS-injection vector.
-            let data = (try? JSONEncoder().encode(anchor)) ?? Data("\"\"".utf8)
-            let json = String(data: data, encoding: .utf8) ?? "\"\""
+            let json = Self.javaScriptJSON(anchor)
             webView.evaluateJavaScript("window.folioScrollToAnchor && window.folioScrollToAnchor(\(json))")
             Task { @MainActor in pendingScrollAnchor = nil }
         }
+    }
+
+    private static func javaScriptJSON<T: Encodable>(_ value: T) -> String {
+        let data = (try? JSONEncoder().encode(value)) ?? Data("null".utf8)
+        return String(data: data, encoding: .utf8) ?? "null"
     }
 
     private static let userScriptSources: [String] = {
@@ -323,9 +349,17 @@ struct ArticleWebView: UIViewRepresentable {
             let rawPathTitle = String(url.path.dropFirst("/wiki/".count))
             let decoded = rawPathTitle.removingPercentEncoding ?? rawPathTitle
 
-            // Same-article fragment → let WKWebView scroll natively
-            if decoded == currentTitle, url.fragment != nil {
-                return .allow
+            // The composed document has a custom origin while <base> resolves
+            // fragments into the canonical HTTPS article URL. Allowing that URL
+            // would load Wikipedia's live document instead of scrolling ours.
+            if Self.normalizedTitle(decoded) == Self.normalizedTitle(currentTitle),
+               let rawFragment = url.fragment {
+                let fragment = rawFragment.removingPercentEncoding ?? rawFragment
+                let json = ArticleWebView.javaScriptJSON(fragment)
+                _ = try? await webView?.evaluateJavaScript(
+                    "window.folioScrollToAnchor && window.folioScrollToAnchor(\(json))"
+                )
+                return .cancel
             }
 
             // Namespaced wiki pages (File:, Special:, etc.) are not articles.
@@ -341,6 +375,12 @@ struct ArticleWebView: UIViewRepresentable {
 
             onInternalLink(ArticleDestination(title: decoded, language: lang))
             return .cancel
+        }
+
+        /// Wikipedia treats underscores and spaces as equivalent in article
+        /// titles; URLs generally use the former while API titles use the latter.
+        private static func normalizedTitle(_ title: String) -> String {
+            title.replacingOccurrences(of: "_", with: " ")
         }
     }
 }

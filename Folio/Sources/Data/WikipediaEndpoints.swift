@@ -92,6 +92,20 @@ enum WikipediaEndpoint {
         }
     }
 
+    static func articleURL(title: String, language: String) -> URL? {
+        guard let escaped = encodePathTitle(title) else { return nil }
+        return URL(string: "https://\(language).wikipedia.org/wiki/\(escaped)")
+    }
+
+    static func historyURL(title: String, language: String) -> URL? {
+        var components = URLComponents(string: "https://\(language).wikipedia.org/w/index.php")
+        components?.queryItems = [
+            URLQueryItem(name: "title", value: title),
+            URLQueryItem(name: "action", value: "history")
+        ]
+        return components?.url
+    }
+
     private static func encodePathTitle(_ title: String) -> String? {
         let underscored = title.replacingOccurrences(of: " ", with: "_")
         var allowed = CharacterSet.urlPathAllowed

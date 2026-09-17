@@ -132,7 +132,7 @@ struct ArticleReaderView: View {
             if let html, visionComplete {
                 ArticleWebView(
                     html: html,
-                    baseURL: baseURL,
+                    articleURL: articleURL,
                     language: language,
                     currentTitle: title,
                     heroImageURL: cachedHeroURL ?? summary?.imageURL(width: ThumbnailWidth.hero),
@@ -197,15 +197,12 @@ struct ArticleReaderView: View {
     private var theme: Theme { settings.flatMap { Theme(rawValue: $0.theme) } ?? .system }
     private var fontScale: Double { settings?.fontScale ?? 1.0 }
 
-    private var baseURL: URL {
-        URL(string: "https://\(language).wikipedia.org/wiki/") ?? URL(string: "https://wikipedia.org")!
+    private var articleURL: URL {
+        WikipediaEndpoint.articleURL(title: title, language: language)
+            ?? URL(string: "https://wikipedia.org")!
     }
 
-    private var shareURL: URL {
-        if let url = summary?.pageURL { return url }
-        let encoded = title.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? title
-        return URL(string: "https://\(language).wikipedia.org/wiki/\(encoded)") ?? baseURL
-    }
+    private var shareURL: URL { articleURL }
 
     private var isBookmarked: Bool {
         bookmarks.contains { $0.title == title && $0.language == language }
