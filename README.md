@@ -18,6 +18,12 @@ personal recreation of the parts I used every day. It is an homage, not a replac
 
 <p align="center"><sub>Today, Nearby, Settings</sub></p>
 
+<p align="center">
+  <img src="docs/screenshots/debug.png" width="424" alt="The same reader in the De:Bug theme: newsprint ground, magenta spot colour, prose set in Besley">
+</p>
+
+<p align="center"><sub>The De:Bug theme, which swaps the prose face as well as the palette</sub></p>
+
 ## What it does
 
 - Today: Wikipedia's featured article, most-read, and news as a photo grid with
@@ -45,7 +51,9 @@ each Today tile darkens its image only as much as that image's measured
 brightness requires. The reader sets 18px at 1.52 line height, sized by
 x-height rather than by the nominal number, with the measure capped at 26rem,
 which holds about 63 characters at any reader size. Prose uses old-style
-figures; tables and infoboxes keep lining tabular figures so columns align. The
+figures; tables and infoboxes keep lining tabular figures so columns align. A
+costume theme carries its own face and its own measurements, because size is
+chosen by x-height and not every face agrees about what a pixel is worth. The
 display title scales independently and stops at 120%, while body text keeps
 the full setting range. Folio restores each article's document language
 before layout and applies locale-aware punctuation, so English and German
@@ -75,9 +83,11 @@ over staged changes, commit messages, and outgoing pushes.
 ## Status
 
 Alpha. I use it daily and fix whatever annoys me, roughly in that order.
-Known gaps: thin test coverage, only English and German Wikipedia, iPad launches but
-has had no attention, and offline reading covers only what you have already
-opened. Issues and pull requests are welcome. I can't promise a roadmap.
+iPhone only, deliberately: iPad would need layout work I have not done, so it
+is out of the device family rather than shipping untuned. Known gaps: thin
+test coverage, only English and German Wikipedia, and offline reading covers
+only what you have already opened. Issues and pull requests are welcome. I
+can't promise a roadmap.
 
 ## Credits
 
