@@ -330,16 +330,31 @@ section[data-mw-section-id] {
     vertical-align: top;
     text-align: left;
 }
-/* Gap between the label column (TH) and the value column (TD) — otherwise
-   they touch (e.g. de.wiki "Geburtstag23. Juli 1987"). */
-.infobox th { padding-right: 14px; white-space: nowrap; }
+/* The label column. en.wiki marks it up as TH; de.wiki uses a plain TD with
+   inline `text-align:right; font-weight:bold`, so key off structure instead:
+   the first of exactly two cells in a row. Without this the label touches the
+   value ("Unfallartungeklärt") and hyphenates itself ("Luftfahr-/zeugtyp"),
+   because the value column's break rules below also land on it. */
+.infobox th,
+.infobox tr > td:first-child:nth-last-child(2) {
+    padding-right: 14px;
+    hyphens: none;
+    -webkit-hyphens: none;
+    overflow-wrap: normal;
+}
+.infobox th { white-space: nowrap; }
+/* Fixed layout takes its columns from the first row, and infoboxes open with a
+   colspan=2 title, which splits them 50/50. German labels do not fit that, so
+   state the split instead of inheriting the accident. */
+.infobox tr > td:first-child:nth-last-child(2),
+.infobox tr > th:first-child:nth-last-child(2) { width: 38%; }
 /* Long German compounds (`Umgangssprache`, `Bevölkerungsentwicklung`) are
    one indivisible token to the line-breaker, so they bloat the value column
    and force the whole table to overflow the card. Prefer OS-driven syllable
    hyphenation (ArticleHTML restores the source language on the document root
    so iOS picks the right dictionary),
    fall back to a mid-word break as a last resort. */
-.infobox td {
+.infobox tr > td:last-child {
     overflow-wrap: anywhere;
     hyphens: auto;
     -webkit-hyphens: auto;
