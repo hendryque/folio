@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct TodayView: View {
+    @Environment(\.folioTheme) private var theme
     @Query private var settingsList: [AppSettings]
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.modelContext) private var modelContext
@@ -40,7 +41,7 @@ struct TodayView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .background(Color(.systemGroupedBackground))
+        .background(theme.paper)
         .refreshable { await refresh() }
         .task(id: language) { await refresh() }
         .onChange(of: scenePhase) { _, phase in

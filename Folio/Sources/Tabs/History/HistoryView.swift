@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct HistoryView: View {
+    @Environment(\.folioTheme) private var theme
     let onRerunSearch: (String) -> Void
 
     @Query(sort: \HistoryEntry.readAt, order: .reverse) private var articleHistory: [HistoryEntry]
@@ -25,8 +26,10 @@ struct HistoryView: View {
                     .onDelete(perform: delete)
                 }
                 .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
         }
+        .background(theme.paper)
         .task { collapseDuplicates() }
     }
 
@@ -107,13 +110,14 @@ private struct Row: View {
 }
 
 private struct ArticleRowLabel: View {
+    @Environment(\.folioTheme) private var theme
     let entry: HistoryEntry
 
     var body: some View {
         HStack(spacing: 12) {
             Text(entry.title.replacingOccurrences(of: "_", with: " "))
                 .font(.custom("EBGaramond-Bold", size: 19, relativeTo: .body))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(theme.palette.accentColor)
                 .lineLimit(2)
             Spacer(minLength: 8)
             LanguageBadge(language: entry.language)
@@ -123,16 +127,17 @@ private struct ArticleRowLabel: View {
 }
 
 private struct SearchRowLabel: View {
+    @Environment(\.folioTheme) private var theme
     let entry: SearchHistoryEntry
 
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(theme.palette.accentColor)
             Text(entry.query)
                 .font(.custom("EBGaramond-Regular", size: 18, relativeTo: .body))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(theme.palette.accentColor)
                 .lineLimit(1)
             Spacer(minLength: 8)
             LanguageBadge(language: entry.language)

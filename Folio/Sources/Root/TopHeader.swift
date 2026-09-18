@@ -6,6 +6,7 @@ struct TopHeader: View {
     @Binding var selectedTab: ContentView.Tab
     @FocusState.Binding var searchFocused: Bool
 
+    let theme: Theme
     let language: String
     let onLogoTap: () -> Void
     let onLanguageToggle: () -> Void
@@ -35,7 +36,7 @@ struct TopHeader: View {
                 Button(action: onLanguageToggle) {
                     Text(language.uppercased())
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(theme.palette.accentColor)
                         .frame(minWidth: 28)
                         .padding(.vertical, 6)
                 }
@@ -53,16 +54,17 @@ struct TopHeader: View {
 
             TabIconRow(selectedTab: $selectedTab, onReselectTab: onReselectTab)
         }
-        .background(.regularMaterial)
+        .background(theme.barBackground)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(Color(.separator))
+                .fill(theme.palette.secondaryColor.opacity(0.2))
                 .frame(height: 0.5)
         }
     }
 }
 
 private struct FolioLogo: View {
+    @Environment(\.folioTheme) private var theme
     // The text frame ends a full descender below the baseline; claw that
     // back so the rule sits just under the F, matching the app icon's mark.
     private static let ruleSpacing: CGFloat = {
@@ -74,9 +76,9 @@ private struct FolioLogo: View {
         VStack(alignment: .center, spacing: Self.ruleSpacing) {
             Text("F")
                 .font(.custom("EBGaramond-BoldItalic", size: 22, relativeTo: .title3))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(theme.palette.accentColor)
             Rectangle()
-                .fill(Color.accentColor)
+                .fill(theme.palette.accentColor)
                 .frame(width: 14, height: 1.5)
         }
     }
@@ -116,6 +118,7 @@ private struct SearchBar: View {
 }
 
 private struct TabIconRow: View {
+    @Environment(\.folioTheme) private var theme
     @Binding var selectedTab: ContentView.Tab
     let onReselectTab: (ContentView.Tab) -> Void
 
@@ -135,6 +138,7 @@ private struct TabIconRow: View {
 }
 
 private struct TabIconButton: View {
+    @Environment(\.folioTheme) private var theme
     let tab: ContentView.Tab
     let isSelected: Bool
     let action: () -> Void
@@ -144,9 +148,9 @@ private struct TabIconButton: View {
             VStack(spacing: 6) {
                 Image(systemName: tab.iconName)
                     .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(isSelected ? theme.palette.accentColor : Color.secondary)
                 Rectangle()
-                    .fill(isSelected ? Color.accentColor : Color.clear)
+                    .fill(isSelected ? theme.palette.accentColor : Color.clear)
                     .frame(height: 2)
                     .padding(.horizontal, 16)
             }

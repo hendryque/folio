@@ -5,6 +5,7 @@ import CoreLocation
 import UIKit
 
 struct NearbyView: View {
+    @Environment(\.folioTheme) private var theme
     let recenterToken: UUID
 
     @Query private var settingsList: [AppSettings]
@@ -77,7 +78,7 @@ struct NearbyView: View {
                             coordinate: CLLocationCoordinate2D(latitude: article.latitude, longitude: article.longitude)
                         )
                         .tag(article.id)
-                        .tint(Color.accentColor)
+                        .tint(theme.palette.accentColor)
                     }
                 }
                 .mapStyle(.standard(elevation: .flat))

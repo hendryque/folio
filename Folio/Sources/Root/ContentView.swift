@@ -3,6 +3,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var systemScheme
     @Query private var settingsList: [AppSettings]
 
     @State private var searchText = ""
@@ -51,6 +52,7 @@ struct ContentView: View {
                 searchText: $searchText,
                 selectedTab: $selectedTab,
                 searchFocused: $searchFocused,
+                theme: theme,
                 language: language,
                 onLogoTap: tapLogo,
                 onLanguageToggle: toggleLanguage,
@@ -68,17 +70,22 @@ struct ContentView: View {
             ZStack {
                 activeTabStack
                 if isSearching {
-                    SearchResultsList(query: searchText, language: language) { result in
+                    SearchResultsList(theme: theme, query: searchText, language: language) { result in
                         searchFocused = false
                         searchText = ""
                         appendToActivePath(ArticleDestination(title: result.title, language: language))
                     }
-                    .background(Color(.systemBackground))
+                    .background(theme.paper)
                     .transition(.opacity)
                 }
             }
             .animation(.easeInOut(duration: 0.18), value: isSearching)
         }
+        // The chrome carries the theme's accent too: De:Bug is one spot
+        // colour per issue, and an orange logo over magenta links reads as a
+        // mistake rather than a costume.
+        .tint(theme.palette.accentColor)
+        .environment(\.folioTheme, theme)
         .preferredColorScheme(currentTheme.colorScheme)
         .task {
             ensureSettingsRow()
@@ -192,6 +199,10 @@ struct ContentView: View {
     }
 
     private var settings: AppSettings? { settingsList.first }
+
+    /// Auto is resolved here, once, so no view downstream has to ask the
+    /// device what it means.
+    private var theme: Theme { currentTheme.resolved(for: systemScheme) }
     private var language: String { settings?.defaultLanguage ?? "en" }
     private var currentTheme: Theme {
         settings.flatMap { Theme(rawValue: $0.theme) } ?? .system
@@ -262,6 +273,7 @@ struct ContentView: View {
 }
 
 private struct SearchResultsList: View {
+    let theme: Theme
     let query: String
     let language: String
     let onSelect: (SearchResult) -> Void
@@ -287,7 +299,7 @@ private struct SearchResultsList: View {
             }
         }
         .listStyle(.plain)
-        .background(Color(.systemBackground))
+        .background(theme.paper)
         // Results depend on query AND language: the EN/DE toggle must refetch,
         // and stale other-language rows must not linger while it does.
         .task(id: "\(language)|\(query)") { scheduleSearch(query) }

@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct BookmarksView: View {
+    @Environment(\.folioTheme) private var theme
     @Query(sort: \Bookmark.addedAt, order: .reverse) private var bookmarks: [Bookmark]
     @Environment(\.modelContext) private var modelContext
 
@@ -27,8 +28,10 @@ struct BookmarksView: View {
                     .onDelete(perform: delete)
                 }
                 .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
         }
+        .background(theme.paper)
     }
 
     private func delete(at offsets: IndexSet) {

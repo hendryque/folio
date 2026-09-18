@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct ArticleReaderView: View {
+    @Environment(\.folioTheme) private var theme
     let title: String
     let language: String
 
@@ -194,7 +195,7 @@ struct ArticleReaderView: View {
     private var displayTitle: String { title.replacingOccurrences(of: "_", with: " ") }
 
     private var settings: AppSettings? { settingsList.first }
-    private var theme: Theme { settings.flatMap { Theme(rawValue: $0.theme) } ?? .system }
+    /// Resolved once by ContentView, so Auto never reaches the stylesheet.
     private var fontScale: Double { settings?.fontScale ?? 1.0 }
 
     private var articleURL: URL {
@@ -512,6 +513,7 @@ struct ArticleReaderView: View {
 }
 
 private struct FloatingBackButton: View {
+    @Environment(\.folioTheme) private var theme
     let action: () -> Void
 
     var body: some View {
@@ -520,7 +522,7 @@ private struct FloatingBackButton: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(.primary)
                 .frame(width: 40, height: 40)
-                .background(.thinMaterial, in: Circle())
+                .background(theme.barBackground, in: Circle())
                 .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
         }
         .accessibilityLabel("Back")
@@ -530,6 +532,7 @@ private struct FloatingBackButton: View {
 }
 
 private struct BottomReaderToolbar: View {
+    @Environment(\.folioTheme) private var theme
     let isBookmarked: Bool
     let shareURL: URL
     let themeIcon: String
@@ -597,7 +600,7 @@ private struct BottomReaderToolbar: View {
         .foregroundStyle(Color.primary)
         .buttonStyle(.plain)
         .frame(height: 56)
-        .background(.regularMaterial)
+        .background(theme.barBackground)
         .clipShape(Capsule())
         .overlay(
             Capsule().stroke(Color.black.opacity(0.06), lineWidth: 0.5)

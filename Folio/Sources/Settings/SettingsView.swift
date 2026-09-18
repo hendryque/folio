@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct SettingsView: View {
+    @Environment(\.folioTheme) private var theme
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query private var settingsList: [AppSettings]
@@ -63,6 +64,8 @@ struct SettingsView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(theme.paper)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -160,7 +163,7 @@ private struct ThemeCard: View {
                     .overlay {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .stroke(
-                                isSelected ? Color.accentColor : Color(.separator),
+                                isSelected ? theme.palette.accentColor : Color(.separator),
                                 lineWidth: isSelected ? 2.5 : 0.5
                             )
                     }
@@ -169,14 +172,14 @@ private struct ThemeCard: View {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 18))
                                 .symbolRenderingMode(.palette)
-                                .foregroundStyle(.white, Color.accentColor)
+                                .foregroundStyle(.white, theme.palette.accentColor)
                                 .padding(4)
                         }
                     }
 
                 Text(theme.displayName)
                     .font(.caption.weight(isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? Color.accentColor : .primary)
+                    .foregroundStyle(isSelected ? theme.palette.accentColor : .primary)
             }
         }
         .buttonStyle(.plain)

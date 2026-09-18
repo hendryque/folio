@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NearbyCarousel: View {
+    @Environment(\.folioTheme) private var theme
     let articles: [NearbyArticle]
     @Binding var selectedID: Int?
     let language: String
@@ -39,6 +40,7 @@ struct NearbyCarousel: View {
 }
 
 private struct NearbyCard: View {
+    @Environment(\.folioTheme) private var theme
     let article: NearbyArticle
     let language: String
 
@@ -74,7 +76,7 @@ private struct NearbyCard: View {
                 Spacer(minLength: 0)
             }
             .padding(12)
-            .background(.regularMaterial)
+            .background(theme.barBackground)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)

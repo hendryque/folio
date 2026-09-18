@@ -103,6 +103,7 @@ struct TableOfContentsDrawer: View {
 }
 
 private struct TOCRow: View {
+    @Environment(\.folioTheme) private var theme
     let title: String
     let level: Int
     let isActive: Bool
@@ -143,7 +144,7 @@ private struct TOCRow: View {
     }
 
     private var textColor: Color {
-        if isTitleRow { return Color.accentColor }
+        if isTitleRow { return theme.palette.accentColor }
         return .primary
     }
 }

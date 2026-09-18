@@ -1,18 +1,3 @@
-/* De:Bug — tribute to the Berlin "Magazin für elektronische Lebensaspekte"
-   (1997–2014, design Lars Hammerschmidt). Newsprint, one spot colour per
-   issue, Fakt for display; Barlow Semi Condensed stands in for it. */
-[data-theme="debug"], [data-theme="debug"] body {
-    --folio-bg: #e8e5de;
-    --folio-fg: #1c1b19;
-    --folio-secondary: #6b6862;
-    --folio-link: #c9006b;
-    --folio-link-underline: rgba(201, 0, 107, 0.4);
-    --folio-divider: rgba(28, 27, 25, 0.16);
-    --folio-accent: #c9006b;
-    --folio-card-bg: #efede6;
-    --folio-code-bg: rgba(28, 27, 25, 0.06);
-}
-
 /* Besley stands in for Sentinel in the prose, Barlow Semi Condensed for Fakt
    on the display type. Sizes and leading travel with the face, in Theme. */
 [data-theme="debug"], [data-theme="debug"] body {

@@ -27,13 +27,32 @@ enum Theme: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The `data-theme` attribute value the article CSS branches on.
+    /// Auto is not a look of its own, so resolve it against the device before
+    /// anything reads a colour. Without this the chrome followed the system
+    /// while the article stayed light.
+    func resolved(for scheme: ColorScheme) -> Theme {
+        guard self == .system else { return self }
+        return scheme == .dark ? .dark : .light
+    }
+
+    /// The `data-theme` attribute value the article CSS branches on. Resolve
+    /// first: Auto has no stylesheet of its own.
     var cssDataTheme: String {
         switch self {
         case .system, .light: "light"
         case .sepia: "sepia"
         case .dark: "dark"
         case .debug: "debug"
+        }
+    }
+
+    /// Every colour this theme paints with, for SwiftUI and the reader alike.
+    var palette: Palette {
+        switch self {
+        case .system, .light: .light
+        case .sepia: .sepia
+        case .dark: .dark
+        case .debug: .debug
         }
     }
 
@@ -48,16 +67,12 @@ enum Theme: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The page ground, single-sourced: preview, TOC drawer and gallery all
-    /// mirror the reader and every theme used to be pasted into each.
-    var paper: Color {
-        switch self {
-        case .system, .light: Color(.systemBackground)
-        case .sepia: Color(red: 0.957, green: 0.926, blue: 0.847)
-        case .dark: Color(red: 0.102, green: 0.102, blue: 0.110)
-        case .debug: Color(red: 0.910, green: 0.898, blue: 0.871)
-        }
-    }
+    /// The page ground. Resolve Auto before reading it.
+    var paper: Color { palette.backgroundColor }
+
+    /// Bars, cards and sheets: a tone off the ground so a surface sitting on
+    /// the page still reads as its own.
+    var barBackground: Color { palette.cardColor }
 
     /// Reader faces and metrics, mirrored by ArticleLoadingPreview. A theme
     /// may swap the display face, so the numbers travel with it.
@@ -92,4 +107,17 @@ enum Theme: String, CaseIterable, Identifiable, Sendable {
     var measureRem: Double { self == .debug ? 34 : 26 }
     var heroTitleSize: Double { self == .debug ? 42 : 44.2 }
     var textOnlyTitleSize: Double { self == .debug ? 38 : 40.8 }
+}
+
+private struct FolioThemeKey: EnvironmentKey {
+    static let defaultValue: Theme = .light
+}
+
+extension EnvironmentValues {
+    /// The reader theme, already resolved against the device so Auto never
+    /// reaches a view. ContentView sets it once.
+    var folioTheme: Theme {
+        get { self[FolioThemeKey.self] }
+        set { self[FolioThemeKey.self] = newValue }
+    }
 }

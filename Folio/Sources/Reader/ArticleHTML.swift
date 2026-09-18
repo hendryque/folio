@@ -55,12 +55,13 @@ enum ArticleHTML {
         let fontQueriesJSON = (try? JSONEncoder().encode(theme.webFontQueries))
             .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
 
-        // article.css reads the metrics from here so ArticleLoadingPreview,
-        // which mirrors them, cannot drift out of step with the stylesheet.
+        // The stylesheet reads both the palette and the metrics from here, so
+        // the chrome and the article ground cannot drift apart and the preview
+        // cannot drift from what it fades into.
         let metrics = String(
             format: "--folio-body-size: %.1fpx; --folio-body-leading: %.3f; --folio-measure: %.0frem;",
             theme.bodySize, theme.bodyLineHeight, theme.measureRem
-        )
+        ) + " " + theme.palette.cssVariables
 
         let rendered = """
         <!DOCTYPE html>
@@ -139,7 +140,7 @@ enum ArticleHTML {
     }
 
     private static func loadCSS() -> String {
-        let names = ["article", "theme-light", "theme-sepia", "theme-dark", "theme-debug"]
+        let names = ["article", "theme-debug"]
         let bundled = names.compactMap { resource(name: $0, ext: "css") }.joined(separator: "\n\n")
         return BundledFonts.articleCSS + "\n\n" + bundled
     }
