@@ -97,9 +97,9 @@ enum Theme: String, CaseIterable, Identifiable, Sendable {
     /// matches 18px of the garalde.
     var bodySize: Double { self == .debug ? 14 : 18 }
 
-    /// Set so the interlinear channel lands a little over one x-height, the
-    /// principle in docs/typography.md. Besley needs more because its ink is
-    /// 1.204em deep against Garamond's 1.085em.
+    /// Set so the interlinear channel, the line height less the real ink,
+    /// lands a little over one x-height. Besley's ink runs 1.204em deep
+    /// against Garamond's 1.085em, so the slab needs more to reach the same.
     var bodyLineHeight: Double { self == .debug ? 1.75 : 1.52 }
 
     /// The cap in rem holds a fixed character count per face, so the wider
